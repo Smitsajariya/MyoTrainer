@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Virtual Prosthesis Trainer</title>
+<style>
+  :root {
+    --bg: #eef0f3; --panel: #ffffff; --ink: #14181f; --ink2: #5a6270; --line: #d9dde3;
+    --accent: #8a4b12; --emg: #2a78d6; --fmg: #eb6834; --ok: #1baf7a; --muted: #eceff3; --bad: #c43e34;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink);
+    font-family: Inter, "Segoe UI", system-ui, sans-serif; }
+  #app { display: grid; grid-template-columns: 1fr 360px; height: 100vh; }
+  #view { position: relative; overflow: hidden; }
+  canvas#gl { display: block; }
+  #panel { background: var(--panel); border-left: 1px solid var(--line); padding: 16px 18px 24px; overflow-y: auto; }
+  h1 { font-size: 15px; margin: 0 0 2px; }
+  .sub { color: var(--ink2); font-size: 12px; margin-bottom: 10px; }
+  .sect { margin-top: 16px; }
+  .lab { font-size: 11px; font-weight: 700; color: var(--ink2); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 7px; }
+  #conn { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink2); }
+  #conn i { width: 8px; height: 8px; border-radius: 50%; background: var(--bad); display: inline-block; }
+  #conn.on i { background: var(--ok); }
+  .state { font-size: 28px; font-weight: 800; letter-spacing: .02em; color: var(--accent); text-transform: uppercase; }
+  .bar { display: grid; grid-template-columns: 62px 1fr 42px; gap: 8px; align-items: center; font-size: 12px; margin: 4px 0; }
+  .track { height: 8px; background: var(--muted); border-radius: 4px; overflow: hidden; }
+  .fill { height: 100%; width: 0; border-radius: 4px; transition: width .08s linear; }
+  .num { text-align: right; color: var(--ink2); font-variant-numeric: tabular-nums; }
+  #fmg { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
+  #fmg div { height: 20px; border-radius: 4px; background: var(--muted); }
+  .btns { display: flex; flex-wrap: wrap; gap: 8px; }
+  button { font: inherit; font-size: 13px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line);
+    background: #fff; color: var(--ink); cursor: pointer; }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  button.green { background: var(--ok); color: #fff; border-color: var(--ok); }
+  button:disabled { opacity: .45; cursor: default; }
+  .row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; font-size: 12px; color: var(--ink2); }
+  .row label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+  input[type=text] { font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; width: 100%; }
+  input[type=number] { font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; width: 60px; }
+  .kbd { display: inline-block; min-width: 18px; padding: 0 4px; border: 1px solid var(--line); border-radius: 4px; font-size: 11px; text-align: center; color: var(--ink2); }
+  #meta, #camStatus { font-size: 11.5px; color: var(--ink2); line-height: 1.6; }
+  #prompt, #banner { position: absolute; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,.95);
+    border: 1px solid var(--line); border-radius: 14px; padding: 12px 26px; text-align: center; min-width: 320px; display: none;
+    box-shadow: 0 6px 24px rgba(20,24,31,.08); }
+  #prompt { top: 24px; }
+  /* game messages at the bottom, so they never cover the hand */
+  #banner { bottom: 12px; min-width: 240px; padding: 6px 18px; }
+  #banner .g { font-size: 19px; }
+  #banner .ph { font-size: 12px; }
+  #banner.near { border: 2px solid var(--ok); }
+  #banner.near .g { color: var(--ok); }
+  #prompt .g, #banner .g { font-size: 28px; font-weight: 800; letter-spacing: .02em; }
+  #banner.ok .g { color: var(--ok); }
+  #prompt .ph, #banner .ph { font-size: 13px; color: var(--ink2); margin-top: 2px; }
+  #prompt .pb { height: 6px; background: var(--muted); border-radius: 3px; margin-top: 10px; overflow: hidden; }
+  #prompt .pb div { height: 100%; background: var(--accent); width: 0; }
+  #mode { position: absolute; left: 16px; bottom: 14px; font-size: 12px; color: var(--ink2); }
+  #camBox { position: absolute; left: 16px; bottom: 40px; width: 224px; height: 168px; border-radius: 12px; overflow: hidden;
+    background: #1b1f26; display: none; border: 1px solid var(--line); }
+  #camBox video, #camBox canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #camBox video { transform: scaleX(-1); object-fit: cover; opacity: .9; }
+  #camLabel { position: absolute; left: 8px; top: 6px; font-size: 13px; font-weight: 600; color: #fff; background: rgba(0,0,0,.5); padding: 3px 8px; border-radius: 6px; }
+  /* PLAY MODE: panel hidden, the 3D view gets the whole screen, a small score bar on top */
+  #app.play { grid-template-columns: 1fr; }
+  #app.play #panel, #app.play #mode { display: none; }
+  /* play mode: the camera picture sits up in the empty sky, on the side away from the arm, so it never hides the table */
+  #app.play #camBox { width: 240px; height: 180px; top: 64px; bottom: auto; left: auto; right: 16px; }
+  #app.play.arm-r #camBox { left: 16px; right: auto; }
+  #app.play #camLabel { font-size: 16px; }
+  #app.play #banner { left: 50%; }
+  #hud { position: absolute; top: 14px; left: 16px; right: 16px; display: none; justify-content: space-between; align-items: center; pointer-events: none; }
+  #app.play #hud { display: flex; }
+  #hud .chips { display: flex; gap: 8px; }
+  #hud .chip { background: rgba(255,255,255,.92); border: 1px solid var(--line); border-radius: 10px; padding: 6px 12px; font-size: 14px; color: var(--ink2); }
+  #hud .chip b { color: var(--ink); font-size: 18px; margin-left: 4px; }
+  #hud button { pointer-events: auto; }
+  details#adv { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 10px; }
+  details#adv summary { cursor: pointer; font-size: 12px; font-weight: 700; color: var(--ink2); text-transform: uppercase; letter-spacing: .07em; }
+  table.gstats { width: 100%; border-collapse: separate; border-spacing: 0 4px; font-size: 12px; margin-top: 6px; }
+  table.gstats th { text-align: left; font-size: 12px; color: var(--ink); padding: 2px 6px; }
+  table.gstats td { background: var(--muted); padding: 5px 6px; color: var(--ink2); }
+  table.gstats td + td { color: var(--ink); font-weight: 700; font-size: 14px; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 12px; }
+  .stats div { background: var(--muted); border-radius: 8px; padding: 6px 8px; }
+  .stats b { display: block; font-size: 16px; color: var(--ink); }
+  #camCurls .bar { grid-template-columns: 62px 1fr 34px; }
+  @media (max-width: 760px) { #app { grid-template-columns: 1fr; grid-template-rows: 55vh auto; } #panel { border-left: 0; border-top: 1px solid var(--line); } }
+
+  /* Match it: round card + result screen */
+  #roundIntro { position:absolute; left:50%; top:38%; transform:translate(-50%,-50%) scale(.8); opacity:0; pointer-events:none; z-index:6;
+    background:rgba(255,255,255,.96); border-radius:22px; padding:22px 40px; text-align:center; box-shadow:0 18px 50px rgba(20,24,31,.22); }
+  #roundIntro.show { animation: riPop 2.3s ease forwards; }
+  @keyframes riPop { 0%{opacity:0;transform:translate(-50%,-50%) scale(.7)} 12%{opacity:1;transform:translate(-50%,-50%) scale(1.04)} 20%{transform:translate(-50%,-50%) scale(1)} 80%{opacity:1} 100%{opacity:0;transform:translate(-50%,-60%) scale(.96)} }
+  #roundIntro .ri-icon { font-size:46px; } #roundIntro .ri-t { font-size:26px; font-weight:800; margin-top:4px; }
+  #roundIntro .ri-s { font-size:14px; color:var(--ink2); margin-top:4px; } #roundIntro .ri-l { display:inline-block; margin-top:10px; font-size:12px; font-weight:700; background:#eef6f2; color:#127a55; border-radius:99px; padding:3px 12px; }
+  #endCard { position:absolute; inset:0; display:none; align-items:center; justify-content:center; z-index:8; background:rgba(20,24,31,.35); backdrop-filter:blur(3px); }
+  #endCard .ec { background:#fff; border-radius:22px; padding:22px 28px 18px; width:min(440px,92%); text-align:center; box-shadow:0 24px 60px rgba(0,0,0,.3); animation:ecIn .45s cubic-bezier(.2,1.4,.4,1); }
+  @keyframes ecIn { from{transform:scale(.8);opacity:0} to{transform:scale(1);opacity:1} }
+  .ec-stars { font-size:44px; letter-spacing:6px; } .ec-stars span { display:inline-block; animation:star .5s ease backwards; }
+  .ec-stars span:nth-child(2){animation-delay:.2s} .ec-stars span:nth-child(3){animation-delay:.4s} .ec-stars .dim { filter:grayscale(1); opacity:.25; }
+  @keyframes star { from{transform:scale(0) rotate(-90deg)} to{transform:scale(1) rotate(0)} }
+  .ec-t { font-size:21px; font-weight:800; margin-top:2px; } .ec-cmp { font-size:13px; color:#127a55; font-weight:600; margin:4px 0 12px; }
+  .eb { display:grid; grid-template-columns:130px 1fr 44px; align-items:center; gap:8px; font-size:13px; text-align:left; margin:5px 0; }
+  .ebar { height:10px; background:#eceef1; border-radius:99px; overflow:hidden; } .ebar i { display:block; height:100%; background:linear-gradient(90deg,#1baf7a,#53d3a0); border-radius:99px; animation:grow .9s ease; }
+  @keyframes grow { from{width:0} } .eb b { text-align:right; }
+  .ec-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:14px 0 10px; } .ec-grid div { background:#f4f5f7; border-radius:12px; padding:7px 4px; }
+  .ec-grid b { display:block; font-size:16px; } .ec-grid span { font-size:11px; color:var(--ink2); }
+  .ec-lvl { font-size:13px; font-weight:700; background:#fff6e6; color:#8a5a00; border-radius:10px; padding:6px; }
+  .ec-btns { display:flex; gap:8px; justify-content:center; margin-top:14px; } .ec-btns button { padding:8px 16px; border-radius:10px; font-weight:700; cursor:pointer; border:1px solid #d9dde3; background:#fff; }
+  .ec-btns .primary { background:#1baf7a; color:#fff; border-color:#1baf7a; }
+  .rsel { display:grid; gap:6px; margin-top:8px; } .rsel label { display:flex; align-items:center; gap:8px; font-size:13px; }
+  .rsel select { flex:1; font:inherit; font-size:12.5px; padding:6px 8px; border-radius:8px; border:1px solid var(--line); background:#fff; }
+</style>
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.min.js", "three/addons/": "./vendor/jsm/" } }
+</script>
+</head>
+<body>
+<div id="app">
+  <div id="view">
+    <div id="prompt"><div class="g" id="pg">-</div><div class="ph" id="pph"></div><div class="pb"><div id="pbar"></div></div></div>
+    <div id="roundIntro"></div>
+    <div id="endCard"><div class="ec"><div id="endBody"></div><div class="ec-btns"><button id="bEndAgain" class="primary">▶ Play again</button><button id="bEndBack">Back to setup</button></div></div></div>
+    <div id="banner"><div class="g" id="bg">-</div><div class="ph" id="bph"></div></div>
+    <div id="camBox"><video id="video" playsinline muted></video><canvas id="camCanvas" width="640" height="480"></canvas><span id="camLabel">camera</span></div>
+    <div id="mode">offline demo: keys 1-4 move the hand</div>
+    <div id="hud">
+      <div class="chips">
+        <div class="chip">Item <b id="hTrial">0</b></div>
+        <div class="chip">✔ Success <b id="hOk">0</b></div>
+        <div class="chip">Grab time <b id="hGrab">-</b></div>
+        <div class="chip" id="hHand">✋ -</div>
+        <div class="chip" id="hExtra" style="display:none"></div>
+      </div>
+      <button id="bGameStop2">■ Stop game</button>
+    </div>
+  </div>
+  <aside id="panel">
+    <h1>Virtual Prosthesis Trainer</h1>
+    <div class="sub">Camera / EMG + FMG band driving a virtual hand on a scanned limb</div>
+    <div id="conn"><i></i><span>not connected</span></div>
+
+    <div class="sect"><div class="lab">Decoded movement</div><div class="state" id="state">-</div></div>
+
+    <div class="sect"><div class="lab">1 · Camera sensor</div>
+      <div class="btns"><button class="green" id="bCam">Start camera</button></div>
+      <div class="row" style="margin-top:8px"><label><input type="checkbox" id="mirror" checked> <b>Copy my whole hand</b>: every finger + hand movement in all directions</label></div>
+      <div class="btns" style="margin-top:6px"><button id="bNeutral" title="Hold your hand relaxed in front of the camera and press: this pose = the arm as you see it">Reset hand position</button><button id="bMoveCal" title="10 s: move your hand as far left, right, up and down as is comfortable">↔ Calibrate movement</button><button id="bMoveClear" title="forget the saved range of this hand">✕</button></div>
+      <div id="moveMsg" style="font-size:12px;color:#127a55;font-weight:600;margin-top:4px"></div>
+      <div id="camStatus">camera off</div>
+    </div>
+
+    <div class="sect"><div class="lab">2 · Train the AI</div>
+      <div class="row">Repetitions <input type="number" id="reps" value="3" min="1" max="30"> Hold (s) <input type="number" id="hold" value="3" min="2" max="10" step="0.5"></div>
+      <div class="row"><input type="text" id="tag" placeholder="tag, e.g. day3_shift1cm"></div>
+      <div class="btns">
+        <button class="primary" id="bCal">Calibrate</button>
+        <button id="bRec">Record</button>
+        <button id="bStop">Stop</button>
+      </div>
+    </div>
+
+    <div class="sect"><div class="lab">3 · Play</div>
+      <div class="btns"><button class="primary" id="bGame">▶ 🍎 Fruit basket</button><button class="primary" id="bTower">▶ 🧱 Build a tower</button><button class="primary" id="bMatch">▶ 🎯 Match it</button><button id="bGameStop">Stop game</button></div>
+      <div class="rsel">
+        <label>🍎 <select id="rGame"><option value="all">All rounds</option><option value="1">Round 1 · comes to your hand</option><option value="2">Round 2 · pick it up yourself</option></select></label>
+        <label>🧱 <select id="rTower"><option value="all">All rounds</option><option value="1">Round 1 · comes to your hand</option><option value="2">Round 2 · pick it up yourself</option></select></label>
+        <label>🎯 <select id="rMatch"><option value="all">All rounds</option><option value="1">Round 1 · colour</option><option value="2">Round 2 · shape</option><option value="3">Round 3 · colour + shape</option><option value="4">Round 4 · pick it up yourself</option></select></label>
+      </div>
+      <div style="font-size:11.5px;color:var(--ink2);margin-top:6px">Choose the round, then press the game. Games start in full screen. Results of each game:</div>
+      <table class="gstats" id="stats">
+        <tr><th></th><th>🍎 Fruit</th><th>🧱 Tower</th><th>🎯 Match</th></tr>
+        <tr><td>Trials</td><td id="f_trials">0</td><td id="t_trials">0</td><td id="m_trials">0</td></tr>
+        <tr><td>Success</td><td id="f_rate">-</td><td id="t_rate">-</td><td id="m_rate">-</td></tr>
+        <tr><td>Mean grab time</td><td id="f_grab">-</td><td id="t_grab">-</td><td id="m_grab">-</td></tr>
+        <tr><td>Mean release time</td><td id="f_rel">-</td><td id="t_rel">-</td><td id="m_rel">-</td></tr>
+        <tr><td>Drops / timeouts</td><td id="f_drop">0 / 0</td><td id="t_drop">0 / 0</td><td id="m_drop">0 / 0</td></tr>
+        <tr><td>Towers done / best</td><td>-</td><td id="t_best">0 / 0</td><td>-</td></tr>
+        <tr><td>Wrong colour / shape / both</td><td>-</td><td>-</td><td id="m_wrong">0 / 0 / 0</td></tr>
+        <tr><td>Level · stars</td><td>-</td><td>-</td><td id="m_lvl">-</td></tr>
+        <tr><td>Distance to centre</td><td>-</td><td>-</td><td id="m_dist">-</td></tr>
+      </table>
+    </div>
+
+    <details id="adv"><summary>Advanced (researcher)</summary>
+    <div class="sect"><div class="lab">Camera recording</div>
+      <div class="btns"><button id="bMotRec">● Record my movement</button><button id="bMotPlay" disabled>▶ Replay</button><button id="bMotSave" disabled>Save file</button></div>
+      <div id="motInfo" style="font-size:11.5px;color:var(--ink2);margin-top:4px">camera movement recording: off</div>
+      <div class="row" style="margin-top:6px"><label><input type="checkbox" id="camTeach"> Use camera as teacher for band labels</label></div>
+    </div>
+    <div class="sect"><div class="lab">Finger bend (camera)</div><div id="camCurls"></div></div>
+    <div class="sect"><div class="lab">Classifier probability</div><div id="probs"></div></div>
+
+    <div class="sect"><div class="lab">EMG (RMS)</div>
+      <div class="bar"><span>Flexor</span><div class="track"><div class="fill" id="e0" style="background:var(--emg)"></div></div><span class="num" id="e0n">0</span></div>
+      <div class="bar"><span>Extensor</span><div class="track"><div class="fill" id="e1" style="background:var(--emg)"></div></div><span class="num" id="e1n">0</span></div>
+    </div>
+    <div class="sect"><div class="lab">FMG pressure map (16 FSR)</div><div id="fmg"></div></div>
+
+    <div class="sect" id="simBox"><div class="lab">Simulator intent</div>
+      <div class="btns">
+        <button data-g="rest">Rest <span class="kbd">1</span></button>
+        <button data-g="open">Open <span class="kbd">2</span></button>
+        <button data-g="close">Close <span class="kbd">3</span></button>
+        <button data-g="pinch">Pinch <span class="kbd">4</span></button>
+      </div>
+    </div>
+
+    <div class="sect"><div class="lab">System</div><div id="meta">-</div></div>
+    </details>
+  </aside>
+</div>
+<script type="module" src="./hand.js?v=1794717000"></script>
+</body>
+</html>

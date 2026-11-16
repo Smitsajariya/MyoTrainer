@@ -1,0 +1,225 @@
+<title>Band Print Parts</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+  /* Layout: print-shop sheet. Part picker on top, 3D view left, print card right, then the assembly steps. */
+  :root {
+    --bg: #eef1f3; --panel: #ffffff; --ink: #172026; --ink2: #56636d; --line: #d5dce1; --chip: #f3f6f8; --scene: #e4e9ed;
+    --tpu: #ef6a2f; --petg: #1c9a6c; --accent: #2a78d6;
+    --f-display: "Archivo", "Segoe UI", system-ui, sans-serif; --f-body: "Inter", "Segoe UI", system-ui, sans-serif; --f-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #12171b; --panel: #1a2127; --ink: #e6ecef; --ink2: #9aa8b2; --line: #2c363e; --chip: #222b32; --scene: #161d22; --tpu: #ff7a3d; --petg: #2fbf8a; --accent: #4d95ea; color-scheme: dark } }
+  :root[data-theme="dark"] { --bg: #12171b; --panel: #1a2127; --ink: #e6ecef; --ink2: #9aa8b2; --line: #2c363e; --chip: #222b32; --scene: #161d22; --tpu: #ff7a3d; --petg: #2fbf8a; --accent: #4d95ea; color-scheme: dark }
+  body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 14px; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding-block: 22px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 16px; }
+  h1 { font-family: var(--f-display); font-weight: 800; font-size: clamp(24px, 3.4vw, 32px); margin: 0; text-wrap: balance; }
+  header p { margin: 6px 0 0; color: var(--ink2); max-width: 72ch; line-height: 1.5; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tabs button { font: 600 13px var(--f-body); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; display: flex; gap: 8px; align-items: center; }
+  .tabs button[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+  .tabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .qty { font-family: var(--f-mono); font-size: 11px; opacity: .8; }
+  .bench { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 14px; }
+  @media (max-width: 860px) { .bench { grid-template-columns: 1fr; } }
+  .view { position: relative; background: var(--scene); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; min-height: 440px; }
+  #c3d { display: block; width: 100%; height: 100%; min-height: 440px; cursor: grab; }
+  #tags { position: absolute; inset: 0; pointer-events: none; }
+  .tag { position: absolute; transform: translate(-50%, -50%); font: 600 11px var(--f-body); white-space: nowrap; padding: 2px 6px; border-radius: 6px; background: var(--panel); border: 1px solid var(--line); color: var(--ink); }
+  .tag i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+  .tag.big { font-size: 12px; color: var(--ink2); background: transparent; border: none; }
+  .legend { display: grid; gap: 6px; font-size: 13px; } .legend span { display: flex; gap: 8px; align-items: center; } .legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; flex: none; }
+  .hint { position: absolute; left: 12px; bottom: 10px; font-size: 12px; color: var(--ink2); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+  .lab { font-family: var(--f-display); font-weight: 600; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink2); }
+  .card h2 { font-family: var(--f-display); font-size: 19px; margin: 0; }
+  .card p { margin: 0; color: var(--ink2); line-height: 1.5; }
+  dl { display: grid; grid-template-columns: auto 1fr; gap: 5px 12px; margin: 0; font-size: 13px; }
+  dt { color: var(--ink2); } dd { margin: 0; font-family: var(--f-mono); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .mat { display: inline-block; font: 600 11px var(--f-mono); padding: 2px 7px; border-radius: 99px; color: #fff; }
+  .lower { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+  @media (max-width: 860px) { .lower { grid-template-columns: 1fr; } }
+  ol { margin: 0; padding-left: 20px; display: grid; gap: 7px; line-height: 1.45; }
+  .note { font-size: 12px; color: var(--ink2); }
+  code { font-family: var(--f-mono); font-size: 12px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Sensor band: print parts</h1>
+    <p>One 25 mm Velcro strap carries 8 sensor pods and the electronics box. Each pod holds two FSR 402 sensors, one row near the elbow and one near the wrist, so the band has 16 FSR. Every FSR tail goes straight up into a wire groove on the outside, and the grooves lead into the box.</p>
+  </header>
+  <div class="tabs" id="tabs"></div>
+  <section class="bench">
+    <div class="view"><canvas id="c3d" aria-label="3D view of the selected part"></canvas><div id="tags"></div><div class="hint">drag to turn · scroll to zoom</div></div>
+    <div class="card" id="info" aria-live="polite"></div>
+  </section>
+  <section class="lower">
+    <div class="card">
+      <div class="lab">Print settings</div>
+      <dl>
+        <dt>Pods, buttons</dt><dd>TPU 95A · 0.2 mm · 3 walls · 30 % infill</dd>
+        <dt>Box, lid</dt><dd>PETG or PLA · 0.2 mm · 20 % infill</dd>
+        <dt>Supports</dt><dd>none (each part lies flat as shown)</dd>
+        <dt>Bed</dt><dd>every part fits 220 × 220 mm</dd>
+        <dt>Pod orientation</dt><dd>skin side (FSR pockets) down</dd>
+        <dt>Button</dt><dd>flat disc down, dome up</dd>
+      </dl>
+      <div class="lab">Extra parts</div>
+      <dl>
+        <dt>Strap</dt><dd>25 mm elastic Velcro, ≈ 34 cm</dd>
+        <dt>Screws</dt><dd>4 × M2 × 6 self-tapping (lid)</dd>
+        <dt>Wire</dt><dd>30 AWG silicone, ≈ 3 m</dd>
+        <dt>Glue</dt><dd>a drop of CA / hot glue per FSR edge</dd>
+      </dl>
+    </div>
+    <div class="card">
+      <div class="lab">Assembly</div>
+      <ol>
+        <li>Solder two thin wires to each FSR tail, add heat-shrink.</li>
+        <li>Lay the FSR in its pocket, bend the tail up through the slot, put a button on top (dome to the skin).</li>
+        <li>Lay the wires in the groove; one groove per row leads to the box. Join all FSR "3V3" wires to one bus.</li>
+        <li>Thread the strap through the 8 pods and the box; box on the back of the forearm.</li>
+        <li>Put ESP32, multiplexer, LiPo and charger in the box, close the lid with 4 screws.</li>
+        <li>Wear it ⅓ of the way from elbow to wrist, tight enough that two fingers still slide under.</li>
+      </ol>
+      <div class="note">Sizes come from the data sheet of the FSR 402 (Ø 18.3 mm) and an ESP32 DevKit v1. Print one pod first and check that your FSR fits before printing all eight. The script <code>make_band.py</code> rebuilds every STL if a size must change.</div>
+    </div>
+  </section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
+<script>
+const STL = __STL_DATA__;
+const PARTS = [
+  { id: 'assembly', file: 'band_preview_assembly.stl', name: 'Whole band', qty: 'where each sensor sits', mat: null,
+    text: 'Right forearm, palm facing down, hand to the right. The band sits 5–8 cm below the elbow. Each pod holds 2 FSR: one row near the elbow, one near the wrist.',
+    spec: [['Forearm', '≈ 26 cm around'], ['Sensors', '16 FSR + 2 EMG'], ['Band width', '46 mm']] },
+  { id: 'pod', file: 'band_pod_x8.stl', name: 'Sensor pod', qty: '× 8', mat: 'TPU',
+    text: 'Holds two FSR 402. The pockets face the skin; each tail bends up through the slot at the pocket edge into the wire groove on top. The strap runs through the tunnel in the middle.',
+    spec: [['Size', '24 × 46 × 8 mm'], ['FSR pocket', 'Ø 18.6 × 1.6 mm'], ['Strap tunnel', '26 × 2.8 mm'], ['Wire groove', '3.6 × 1.8 mm, 2 per pod'], ['Volume', '5.7 cm³ each']] },
+  { id: 'button', file: 'band_button_x16.stl', name: 'Pressure button', qty: '× 16', mat: 'TPU',
+    text: 'Sits on top of each FSR inside the pocket, dome towards the skin. It focuses the muscle pressure on the sensing area, which gives a much clearer signal.',
+    spec: [['Disc', 'Ø 18.2 × 1.0 mm'], ['Dome', 'Ø 10 × 2.8 mm'], ['Volume', '0.4 cm³ each']] },
+  { id: 'box', file: 'band_box.stl', name: 'Electronics box', qty: '× 1', mat: 'PETG',
+    text: 'Threads on the same strap, on the back of the forearm. Room for the ESP32 DevKit, the CD74HC4067, a flat LiPo and the TP4056 charger. Wires enter at both ends in line with the pod grooves; USB-C opening at one end, switch at the other.',
+    spec: [['Size', '72 × 46 × 21 mm'], ['Inside', '68 × 42 × 14 mm'], ['Lid', '4 × M2 screws'], ['Volume', '24.9 cm³']] },
+  { id: 'lid', file: 'band_box_lid.stl', name: 'Box lid', qty: '× 1', mat: 'PETG',
+    text: 'Closes the box. The lip keeps it aligned; four M2 self-tapping screws hold it.',
+    spec: [['Size', '72 × 46 × 3.4 mm'], ['Holes', '4 × Ø 2.4 mm']] },
+];
+(function () {
+  const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const canvas = document.getElementById('c3d');
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(35, 1, 0.5, 2000);
+  const controls = new THREE.OrbitControls(camera, canvas); controls.enableDamping = true;
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x445566, 0.65));
+  const sun = new THREE.DirectionalLight(0xffffff, 0.75); sun.position.set(80, 160, 120); scene.add(sun);
+  const loader = new THREE.STLLoader();
+  const geos = {};
+  const b64 = (s) => { const bin = atob(s), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u.buffer; };
+  let mesh = null, arm = null;
+  const tabs = document.getElementById('tabs'), info = document.getElementById('info');
+  PARTS.forEach((p) => {
+    const b = document.createElement('button'); b.dataset.id = p.id; b.setAttribute('aria-pressed', 'false');
+    b.innerHTML = `${p.name} <span class="qty">${p.qty}</span>`; b.onclick = () => show(p.id); tabs.appendChild(b);
+  });
+  function show(id) {
+    const p = PARTS.find((x) => x.id === id);
+    tabs.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.id === id ? 'true' : 'false'));
+    if (mesh) { scene.remove(mesh); } if (arm) { scene.remove(arm); arm = null; }
+    if (!geos[id]) { const g = loader.parse(b64(STL[p.file])); g.computeVertexNormals(); g.center(); geos[id] = g; }
+    const color = p.mat === 'TPU' ? css('--tpu') : p.mat ? css('--petg') : '#5b6670';
+    mesh = new THREE.Mesh(geos[id], new THREE.MeshStandardMaterial({ color, roughness: 0.55, metalness: 0.05 }));
+    mesh.rotation.x = -Math.PI / 2;      // z (away from the skin) up on screen
+    if (id === 'assembly') { buildAssembly(); }
+    else { scene.add(mesh); tagsEl.innerHTML = ''; tags = []; }
+    geos[id].computeBoundingSphere(); const r = id === 'assembly' ? 95 : geos[id].boundingSphere.radius;
+    if (id === 'assembly') camera.position.set(-250, 115, 185);   // from the elbow side: you see the ring around the arm else camera.position.set(r * 1.4, r * 1.3, r * 2.1); controls.target.set(0, 0, 0); camera.near = r / 50; camera.far = r * 40; camera.updateProjectionMatrix();
+    const mat = p.mat ? `<span class="mat" style="background:${color}">${p.mat}</span>` : '';
+    const legend = id === 'assembly' ? `<div class="legend">${ZONES.map((z) => `<span><i style="background:${z.c}"></i><b>${z.name}</b>&nbsp;${z.what}</span>`).join('')}<span><i style="background:#2a78d6;border-radius:50%"></i><b>EMG 1 / 2</b>&nbsp;SEN0240 board, 3 metal electrodes on the skin</span><span><i style="background:#1d1f22;border-radius:50%"></i><b>FSR 402</b>&nbsp;2 per pod, white button under each, tail up to the wire groove</span></div>` : '';
+    info.innerHTML = `<div class="lab">${id === 'assembly' ? 'Where each sensor sits' : 'Selected part'}</div><h2>${p.name} ${id === 'assembly' ? '' : `<span class="qty">${p.qty}</span>`} ${mat}</h2><p>${p.text}</p>${legend}<dl>${p.spec.map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join('')}${id === 'assembly' ? '' : `<dt>File</dt><dd>${p.file}</dd>`}</dl>`;
+  }
+  // ---------- whole band: 8 pods + box placed around a forearm, coloured by muscle group, with labels
+  const ZONES = [
+    { key: 'palm', name: 'Palm side', what: 'finger flexors: fist, pinch', c: '#ef6a2f' },
+    { key: 'back', name: 'Back side', what: 'finger extensors: open hand', c: '#7b5cd6' },
+    { key: 'thumb', name: 'Thumb side', what: 'brachioradialis: wrist turn, pinch', c: '#e0a800' },
+    { key: 'little', name: 'Little-finger side', what: 'wrist flexor (FCU): strong grip', c: '#1c9a6c' },
+  ];
+  const tagsEl = document.getElementById('tags'); let tags = [];
+  function rawGeo(file) { if (!geos['raw_' + file]) { const g = loader.parse(b64(STL[file])); g.computeVertexNormals(); geos['raw_' + file] = g; } return geos['raw_' + file]; }
+  function addTag(pos, html, big) { const el = document.createElement('div'); el.className = 'tag' + (big ? ' big' : ''); el.innerHTML = html; tagsEl.appendChild(el); tags.push({ el, pos }); }
+  function buildAssembly() {
+    tagsEl.innerHTML = ''; tags = [];
+    const g = new THREE.Group(); g.rotation.z = -Math.PI / 2;      // forearm along screen x (wrist right), back of the hand up
+    const R = 260 / (2 * Math.PI) + 0.2, deg = Math.PI / 180;
+    // forearm (elbow left, wrist right) + flat hand
+    const skin = new THREE.MeshStandardMaterial({ color: 0xe0b49a, roughness: 0.8 });
+    const fa = new THREE.Mesh(new THREE.CylinderGeometry(33, R - 0.5, 220, 48), skin); fa.position.y = 10; g.add(fa);
+    const hand = new THREE.Mesh(new THREE.BoxGeometry(70, 85, 26), skin); hand.position.set(0, 160, 0); hand.rotation.y = Math.PI / 2; g.add(hand);
+    // 9 places, 40 deg apart; box on the back (a = -90), pods numbered from the palm side
+    const zoneOf = (a) => { const d = ((a % 360) + 360) % 360; if (d > 45 && d < 135) return 'palm'; if (d > 225 && d < 315) return 'back'; return d <= 45 || d >= 315 ? 'thumb' : 'little'; };
+    const angles = [70, 110, 30, 150, -10, 190, -50, 230];   // pods 1..8: palm first, then the sides, then the back
+    const place = (geo, a, color, see) => { const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color, roughness: 0.55, transparent: !!see, opacity: see || 1, depthWrite: !see })); m.rotation.y = a * deg; m.position.set(R * Math.sin(a * deg), 0, R * Math.cos(a * deg)); g.add(m); return m; };
+    // a frame lying on the band at angle a, in the same axes as the STL parts: x around, y along the arm, z away from the skin
+    const frameAt = (a) => { const f = new THREE.Group(); f.rotation.y = a * deg; f.position.set(R * Math.sin(a * deg), 0, R * Math.cos(a * deg)); g.add(f); return f; };
+    const M = (c, o) => new THREE.MeshStandardMaterial(Object.assign({ color: c, roughness: 0.5 }, o || {}));
+    const bx = (f, w, d, h, x, y, z, m) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, d, h), m); b.position.set(x, y, z + h / 2); f.add(b); return b; };
+    const fsrM = M(0x1d1f22, { roughness: 0.35 }), tailM = M(0xb9bec4, { metalness: 0.6, roughness: 0.3 }), btnM = M(0xf2efe8), wireM = M(0x24282c);
+    angles.forEach((a, i) => {
+      const z = ZONES.find((q) => q.key === zoneOf(a)); place(rawGeo('band_pod_x8.stl'), a, z.c, 0.45);   // see-through pod: the sensors inside are visible
+      const f = frameAt(a);
+      [-1, 1].forEach((s) => {
+        const fsr = new THREE.Mesh(new THREE.CylinderGeometry(9.15, 9.15, 0.5, 32), fsrM); fsr.rotation.x = Math.PI / 2; fsr.position.set(0, s * 10.8, 1.25); f.add(fsr);   // FSR 402 in its pocket
+        const btn = new THREE.Mesh(new THREE.CylinderGeometry(8.9, 8.9, 1.0, 32), btnM); btn.rotation.x = Math.PI / 2; btn.position.set(0, s * 10.8, 0.5); f.add(btn);      // pressure button disc
+        const dome = new THREE.Mesh(new THREE.SphereGeometry(5, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), btnM); dome.rotation.x = -Math.PI / 2; dome.scale.set(1, 1, 0.5); dome.position.set(0, s * 10.8, 0); f.add(dome);
+        bx(f, 6, 0.4, 6.2, 0, s * 19.2, 1.2, tailM);                                                                                                                   // FSR tail up to the groove
+      });
+    });
+    // wires: two bundles in the pod grooves, all around the band into the box
+    [-18.1, 18.1].forEach((y) => { const w = new THREE.Mesh(new THREE.TorusGeometry(R + 7.2, 1.1, 8, 120), wireM); w.rotation.x = Math.PI / 2; w.position.y = y; g.add(w); });
+    // inside the box: LiPo, ESP32 DevKit, CD74HC4067 multiplexer, TP4056 charger
+    const bf = frameAt(-90);
+    bx(bf, 50, 34, 5, -6, 0, 7.2, M(0xc9ccd1, { metalness: 0.5, roughness: 0.35 }));                       // LiPo 3.7 V
+    bx(bf, 51, 28, 1.6, -7, -4, 13, M(0x1f7a4d));                                                           // ESP32 DevKit board
+    bx(bf, 18, 25, 3, -20, -4, 14.6, M(0x8b939b, { metalness: 0.6, roughness: 0.3 }));                     // ESP32 module (Wi-Fi / BLE)
+    bx(bf, 40, 18, 1.6, -6, 10, 17.4, M(0x6f4bb8));                                                         // CD74HC4067 board (16 FSR -> 1 pin)
+    bx(bf, 13, 26, 1.6, 26, 0, 13, M(0x2a5db0));                                                            // TP4056 USB-C charger
+    place(rawGeo('band_box.stl'), -90, '#5b6670', 0.32);                                                    // see-through box
+    // EMG sensors (OYMotion SEN0240): board with 3 metal electrodes on the skin, beside the band towards the elbow
+    const emgM = M(0x2a78d6, { roughness: 0.35 }), elecM = M(0xd7dbe0, { metalness: 0.8, roughness: 0.25 });
+    [90, -90].forEach((a) => {
+      const f = frameAt(a); f.position.y = -50;
+      bx(f, 22, 36, 4, 0, 0, 0.6, emgM);
+      [-11, 0, 11].forEach((y) => bx(f, 16, 3.2, 0.8, 0, y, -0.2, elecM));
+    });
+    // EMG cables into the box: the flexor cable runs around the little-finger side
+    const cab = (pts) => { const t = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 60, 1.1, 6), wireM); g.add(t); };
+    const ring = (a, y, r) => new THREE.Vector3(r * Math.sin(a * deg), y, r * Math.cos(a * deg));
+    cab([ring(90, -32, R + 5), ring(135, -30, R + 6), ring(180, -28, R + 7), ring(225, -27, R + 8), ring(262, -25, R + 9), ring(270, -22, R + 10)]);
+    cab([ring(-90, -32, R + 5), ring(-90, -27, R + 8), ring(-90, -22, R + 10)]);
+    scene.add(g); mesh = g;
+    g.updateMatrixWorld(true);
+    const wp = (x, y, z) => new THREE.Vector3(x, y, z).applyMatrix4(g.matrixWorld);
+    angles.forEach((a, i) => { const z = ZONES.find((q) => q.key === zoneOf(a)); const rr = R + 26; addTag(wp(rr * Math.sin(a * deg), 0, rr * Math.cos(a * deg)), `<i style="background:${z.c}"></i>Pod ${i + 1} · FSR ${2 * i + 1}–${2 * i + 2}`); });
+    addTag(wp((R + 40) * Math.sin(-90 * deg), 0, (R + 40) * Math.cos(-90 * deg)), '<i style="background:#5b6670"></i>Box: ESP32 · mux · LiPo');
+    addTag(wp((R + 16) * Math.sin(90 * deg), -48, (R + 16) * Math.cos(90 * deg)), '<i style="background:#2a78d6;border-radius:50%"></i>EMG 1 · flexor');
+    addTag(wp((R + 16) * Math.sin(-90 * deg), -48, (R + 16) * Math.cos(-90 * deg)), '<i style="background:#2a78d6;border-radius:50%"></i>EMG 2 · extensor');
+    addTag(wp(0, -110, 0), 'elbow', true); addTag(wp(0, 205, 0), 'hand', true);
+  }
+  const _v = new THREE.Vector3();
+  function placeTags() {
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    tags.forEach((t) => { _v.copy(t.pos).project(camera); const vis = _v.z < 1; t.el.style.display = vis ? '' : 'none'; t.el.style.left = `${(_v.x * 0.5 + 0.5) * w}px`; t.el.style.top = `${(-_v.y * 0.5 + 0.5) * h}px`; });
+  }
+  function resize() { const w = canvas.clientWidth, h = canvas.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+  window.addEventListener('resize', resize);
+  function frame() { controls.update(); renderer.render(scene, camera); placeTags(); requestAnimationFrame(frame); }
+  resize(); show('assembly'); frame();
+})();
+</script>

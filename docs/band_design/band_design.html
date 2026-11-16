@@ -1,0 +1,383 @@
+<title>EMG+FMG Band Design</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+  /* Layout: a lab bench. 3D model of the band on the left, controls + part sheet on the right, wiring and parts list below. */
+  :root {
+    --bg: #eef1f3; --panel: #ffffff; --ink: #172026; --ink2: #56636d; --line: #d5dce1;
+    --fsr: #ef6a2f; --emg: #2a78d6; --elec: #1c9a6c; --strap: #2b3238; --skin: #e7b99a;
+    --chip: #f3f6f8; --scene: #e4e9ed;
+    --f-display: "Archivo", "Segoe UI", system-ui, sans-serif;
+    --f-body: "Inter", "Segoe UI", system-ui, sans-serif;
+    --f-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --bg: #12171b; --panel: #1a2127; --ink: #e6ecef; --ink2: #9aa8b2; --line: #2c363e;
+    --fsr: #ff7a3d; --emg: #4d95ea; --elec: #2fbf8a; --strap: #3a434b; --skin: #d9a585;
+    --chip: #222b32; --scene: #161d22; color-scheme: dark } }
+  :root[data-theme="dark"] {
+    --bg: #12171b; --panel: #1a2127; --ink: #e6ecef; --ink2: #9aa8b2; --line: #2c363e;
+    --fsr: #ff7a3d; --emg: #4d95ea; --elec: #2fbf8a; --strap: #3a434b; --skin: #d9a585;
+    --chip: #222b32; --scene: #161d22; color-scheme: dark }
+  body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 14px; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding-block: 22px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 18px; }
+  header h1 { font-family: var(--f-display); font-weight: 800; font-size: clamp(24px, 3.4vw, 34px); letter-spacing: -0.01em; margin: 0; text-wrap: balance; }
+  header p { margin: 6px 0 0; color: var(--ink2); max-width: 70ch; line-height: 1.5; }
+  .spec { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .spec span { font-family: var(--f-mono); font-size: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
+  .bench { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 14px; }
+  @media (max-width: 860px) { .bench { grid-template-columns: 1fr; } }
+  .view { position: relative; background: var(--scene); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; min-height: 460px; }
+  #c3d { display: block; width: 100%; height: 100%; min-height: 460px; cursor: grab; }
+  .hint { position: absolute; left: 12px; bottom: 10px; font-size: 12px; color: var(--ink2); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
+  .side { display: grid; gap: 12px; align-content: start; min-width: 0; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 10px; min-width: 0; }
+  .lab { font-family: var(--f-display); font-weight: 700; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink2); }
+  .row { display: flex; flex-wrap: wrap; gap: 6px; }
+  button.g { font: 600 13px var(--f-body); padding: 7px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--chip); color: var(--ink); cursor: pointer; }
+  button.g[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+  button.g:focus-visible, input:focus-visible { outline: 2px solid var(--emg); outline-offset: 2px; }
+  .layers { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }
+  .layers label { display: flex; align-items: center; gap: 7px; font-size: 13px; cursor: pointer; }
+  .sw { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  input[type=range] { width: 100%; accent-color: var(--elec); }
+  .bars { display: grid; grid-template-columns: repeat(16, 1fr); gap: 3px; align-items: end; height: 70px; }
+  .bars i { display: block; background: var(--fsr); border-radius: 2px 2px 0 0; min-height: 2px; transition: height .12s linear; }
+  .emgrow { display: grid; grid-template-columns: 80px 1fr 40px; align-items: center; gap: 8px; font-size: 12px; }
+  .track { height: 8px; background: var(--chip); border-radius: 99px; overflow: hidden; }
+  .track b { display: block; height: 100%; background: var(--emg); border-radius: 99px; transition: width .12s linear; }
+  .num { font-family: var(--f-mono); font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; }
+  .part h3 { font-family: var(--f-display); font-size: 17px; margin: 0; }
+  .part p { margin: 0; color: var(--ink2); line-height: 1.5; }
+  .part dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; margin: 0; font-size: 13px; }
+  .part dt { color: var(--ink2); } .part dd { margin: 0; font-family: var(--f-mono); font-size: 12px; }
+  .lower { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 14px; }
+  @media (max-width: 860px) { .lower { grid-template-columns: 1fr; } }
+  .scroll { overflow-x: auto; }
+  svg text { font-family: var(--f-mono); font-size: 11px; fill: var(--ink); }
+  svg .t2 { fill: var(--ink2); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 7px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-family: var(--f-display); font-size: 11px; letter-spacing: .07em; text-transform: uppercase; color: var(--ink2); }
+  td.q, td.p { font-family: var(--f-mono); font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .note { font-size: 12px; color: var(--ink2); }
+  ol.steps { margin: 0; padding-left: 20px; display: grid; gap: 6px; line-height: 1.45; }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>EMG + FMG sensor band</h1>
+    <p>The forearm band for the virtual prosthesis trainer: 16 pressure sensors (FMG) sit inside an elastic strap around the forearm, two EMG sensors read the flexor and extensor muscles, and a wireless ESP32 on the band sends everything to the Lab app over Wi-Fi or Bluetooth, powered by a small LiPo battery. Turn the model, open it up, and press a gesture to see which sensors react.</p>
+    <div class="spec"><span>16 × FSR · 100 Hz</span><span>2 × EMG · 1 kHz</span><span>ESP32 wireless (Wi-Fi / BLE)</span><span>LiPo 3.7 V · USB-C charging</span><span>~⅓ forearm from elbow</span><span>≈ €140–170</span></div>
+  </header>
+
+  <section class="bench">
+    <div class="view"><canvas id="c3d" aria-label="3D model of the sensor band on a forearm"></canvas><div class="hint">drag to turn · scroll to zoom · click a part</div></div>
+    <div class="side">
+      <div class="card">
+        <div class="lab">Gesture</div>
+        <div class="row" id="gest">
+          <button class="g" data-g="rest" aria-pressed="true">Rest</button>
+          <button class="g" data-g="open" aria-pressed="false">Open</button>
+          <button class="g" data-g="close" aria-pressed="false">Fist</button>
+          <button class="g" data-g="pinch" aria-pressed="false">Pinch</button>
+        </div>
+        <div class="bars" id="bars" aria-label="16 FSR pressure values"></div>
+        <div class="note">FSR 0–7 palm side (flexors) · FSR 8–15 back of the forearm (extensors)</div>
+        <div class="emgrow"><span>EMG flexor</span><div class="track"><b id="e0"></b></div><span class="num" id="e0n">0.00</span></div>
+        <div class="emgrow"><span>EMG extensor</span><div class="track"><b id="e1"></b></div><span class="num" id="e1n">0.00</span></div>
+      </div>
+      <div class="card">
+        <div class="lab">Open it up</div>
+        <input id="explode" type="range" min="0" max="1" step="0.01" value="0" aria-label="Exploded view">
+        <div class="lab">Show</div>
+        <div class="layers" id="layers">
+          <label><input type="checkbox" id="L_arm" checked><span class="sw" style="background:var(--skin)"></span>Forearm</label>
+          <label><input type="checkbox" id="L_strap" checked><span class="sw" style="background:var(--strap)"></span>Strap</label>
+          <label><input type="checkbox" id="L_fsr" checked><span class="sw" style="background:var(--fsr)"></span>16 FSR</label>
+          <label><input type="checkbox" id="L_emg" checked><span class="sw" style="background:var(--emg)"></span>2 EMG</label>
+          <label><input type="checkbox" id="L_elec" checked><span class="sw" style="background:var(--elec)"></span>ESP32 + battery</label>
+          <label><input type="checkbox" id="L_wire" checked><span class="sw" style="background:var(--ink2)"></span>Wires</label>
+        </div>
+      </div>
+      <div class="card part" id="part" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section class="lower">
+    <div class="card">
+      <div class="lab">Wiring</div>
+      <div class="scroll">
+        <svg viewBox="0 0 640 300" width="640" height="300" role="img" aria-label="Wiring: 16 FSR through a multiplexer to ESP32 pin 36, EMG sensors to pins 34 and 35, ESP32 sends wirelessly to the PC, LiPo battery powers it">
+          <defs><marker id="ar" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--ink2)"></path></marker></defs>
+          <!-- FSR column -->
+          <g>
+            <rect x="10" y="20" width="120" height="150" rx="8" fill="var(--chip)" stroke="var(--fsr)" stroke-width="1.5"></rect>
+            <text x="22" y="42">16 × FSR 402</text>
+            <text x="22" y="62" class="t2">3V3 → FSR</text>
+            <text x="22" y="80" class="t2">10 kΩ → GND</text>
+            <g fill="var(--fsr)"><circle cx="34" cy="110" r="7"></circle><circle cx="56" cy="110" r="7"></circle><circle cx="78" cy="110" r="7"></circle><circle cx="100" cy="110" r="7"></circle><circle cx="34" cy="134" r="7"></circle><circle cx="56" cy="134" r="7"></circle><circle cx="78" cy="134" r="7"></circle><circle cx="100" cy="134" r="7"></circle></g>
+            <text x="22" y="160" class="t2">… ×2 rows</text>
+          </g>
+          <line x1="130" y1="95" x2="198" y2="95" stroke="var(--ink2)" stroke-width="1.5" marker-end="url(#ar)"></line>
+          <text x="140" y="88" class="t2">C0–C15</text>
+          <!-- MUX -->
+          <rect x="200" y="55" width="120" height="90" rx="8" fill="var(--chip)" stroke="var(--elec)" stroke-width="1.5"></rect>
+          <text x="214" y="78">CD74HC4067</text>
+          <text x="214" y="96" class="t2">16 → 1 analog</text>
+          <text x="214" y="114" class="t2">EN → GND</text>
+          <line x1="320" y1="85" x2="408" y2="85" stroke="var(--ink2)" stroke-width="1.5" marker-end="url(#ar)"></line>
+          <text x="330" y="78" class="t2">SIG → GPIO36</text>
+          <line x1="408" y1="118" x2="320" y2="118" stroke="var(--ink2)" stroke-width="1.5" marker-end="url(#ar)"></line>
+          <text x="326" y="134" class="t2">S0–S3 (4 pins)</text>
+          <!-- EMG -->
+          <rect x="200" y="195" width="120" height="80" rx="8" fill="var(--chip)" stroke="var(--emg)" stroke-width="1.5"></rect>
+          <text x="214" y="218">2 × EMG</text>
+          <text x="214" y="236" class="t2">SEN0240</text>
+          <text x="214" y="254" class="t2">flexor · extensor</text>
+          <path d="M320,235 L380,235 L380,165 L408,165" fill="none" stroke="var(--ink2)" stroke-width="1.5" marker-end="url(#ar)"></path>
+          <text x="326" y="228" class="t2">→ GPIO34, 35</text>
+          <!-- ESP32 -->
+          <rect x="410" y="50" width="110" height="140" rx="8" fill="var(--chip)" stroke="var(--elec)" stroke-width="2"></rect>
+          <text x="424" y="74">ESP32</text>
+          <text x="424" y="92" class="t2">DevKit</text>
+          <text x="424" y="116" class="t2">EMG 1 kHz</text>
+          <text x="424" y="134" class="t2">FMG 100 Hz</text>
+          <text x="424" y="158" class="t2">ADC1 only</text>
+          <text x="424" y="174" class="t2">Wi-Fi + BLE</text>
+          <path d="M524,112 q8,8 0,16 M530,106 q14,14 0,28 M536,100 q20,20 0,40" fill="none" stroke="var(--elec)" stroke-width="1.8"></path>
+          <line x1="544" y1="120" x2="568" y2="120" stroke="var(--elec)" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#ar)"></line>
+          <text x="530" y="160" class="t2">BLE/Wi-Fi</text>
+          <rect x="410" y="210" width="110" height="64" rx="8" fill="var(--chip)" stroke="var(--line)" stroke-width="1.5"></rect>
+          <text x="422" y="232">LiPo 3.7 V</text>
+          <text x="422" y="250" class="t2">TP4056 + USB-C</text>
+          <text x="422" y="266" class="t2">charging only</text>
+          <line x1="465" y1="210" x2="465" y2="192" stroke="var(--ink2)" stroke-width="1.5" marker-end="url(#ar)"></line>
+          <rect x="570" y="95" width="62" height="50" rx="8" fill="var(--chip)" stroke="var(--line)" stroke-width="1.5"></rect>
+          <text x="578" y="116">PC</text>
+          <text x="578" y="134" class="t2">Lab app</text>
+        </svg>
+      </div>
+      <div class="note">Data lines: <code>E,ms,emg1,emg2</code> every 1 ms and <code>F,ms,f0…f15</code> every 10 ms, the format the Lab server already reads. The current firmware sends them over USB; for wireless use the same lines go over Bluetooth LE or Wi-Fi (firmware update needed).</div>
+    </div>
+    <div class="card">
+      <div class="lab">Parts list</div>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Part</th><th>Qty</th><th>Approx. price</th></tr></thead>
+          <tbody>
+            <tr><td>Analog EMG sensor (OYMotion SEN0240) with dry electrodes</td><td class="q">2</td><td class="p">US$ 49.50 each</td></tr>
+            <tr><td>Force-sensitive resistor, round (Interlink FSR 402 or generic)</td><td class="q">16</td><td class="p">€13.75 / €1–3</td></tr>
+            <tr><td>ESP32 DevKit (WROOM-32), wireless: Wi-Fi + Bluetooth</td><td class="q">1</td><td class="p">€8–12</td></tr>
+            <tr><td>LiPo battery 3.7 V, ≈ 500 mAh, flat</td><td class="q">1</td><td class="p">€6–8</td></tr>
+            <tr><td>TP4056 USB-C charger with protection + on/off switch</td><td class="q">1</td><td class="p">€2–4</td></tr>
+            <tr><td>CD74HC4067 16-channel multiplexer</td><td class="q">1</td><td class="p">€2–5</td></tr>
+            <tr><td>Resistors 10 kΩ</td><td class="q">16</td><td class="p">€2 pack</td></tr>
+            <tr><td>Elastic strap 3–4 cm, Velcro</td><td class="q">1</td><td class="p">€5</td></tr>
+            <tr><td>Breadboard + jumper wires</td><td class="q">1</td><td class="p">€5–8</td></tr>
+            <tr><td>3D-printed TPU pods (FSR holders)</td><td class="q">16</td><td class="p">print</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note">Prices from the project shopping list, not all checked. With generic FSRs and the battery the band costs about €140–170.</div>
+      <div class="lab">Build order</div>
+      <ol class="steps">
+        <li>One FSR + 10 kΩ on the breadboard, read it on GPIO36.</li>
+        <li>Add the multiplexer and all 16 FSRs.</li>
+        <li>Add the two EMG sensors on GPIO34 and 35.</li>
+        <li>Print the 16 pods, glue the FSRs in, thread them on the strap.</li>
+        <li>Flash <code>firmware/esp32_band</code> and test over USB with <code>--source serial</code>.</li>
+        <li>Add the LiPo + charger and switch the data link to Bluetooth LE: the band is wireless.</li>
+      </ol>
+    </div>
+  </section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function () {
+  const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const col = (n) => new THREE.Color(css(n) || '#888');
+  const canvas = document.getElementById('c3d');
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(35, 1, 0.01, 10);
+  camera.position.set(0.11, 0.1, 0.26);
+  const controls = new THREE.OrbitControls(camera, canvas);
+  controls.target.set(-0.03, 0, 0); controls.enableDamping = true; controls.minDistance = 0.15; controls.maxDistance = 1.2;
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x445566, 0.6));
+  const sun = new THREE.DirectionalLight(0xffffff, 0.65); sun.position.set(0.3, 0.6, 0.5); scene.add(sun);
+
+  const groups = { arm: new THREE.Group(), strap: new THREE.Group(), fsr: new THREE.Group(), emg: new THREE.Group(), elec: new THREE.Group(), wire: new THREE.Group() };
+  Object.values(groups).forEach((g) => scene.add(g));
+  const pick = [];   // clickable parts
+  const tag = (m, info) => { m.userData.info = info; pick.push(m); return m; };
+
+  // ---- forearm along x (wrist at +x, elbow at -x); palm side = -y
+  const prof = [];
+  for (let i = 0; i <= 20; i++) { const t = i / 20; prof.push(new THREE.Vector2(0.027 + 0.016 * Math.sin(Math.PI * (0.15 + 0.7 * (1 - t))) * (1 - t * 0.35), -0.13 + 0.27 * t)); }
+  const skin = new THREE.MeshStandardMaterial({ color: col('--skin'), roughness: 0.7, transparent: true, opacity: 1 });
+  const fore = new THREE.Mesh(new THREE.LatheGeometry(prof, 48), skin); fore.rotation.z = -Math.PI / 2; groups.arm.add(fore);
+  const hand = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.022, 0.07), skin); hand.position.set(0.18, -0.002, 0); groups.arm.add(hand);
+  tag(fore, { name: 'Forearm', role: 'The band sits about one third of the way from elbow to wrist, where the muscles are thickest.', spec: [['Palm side', 'down (flexors)'], ['Back side', 'up (extensors)']] });
+
+  // ---- band ring at x = BX
+  const BX = -0.035, R = 0.0415;
+  const strapMat = new THREE.MeshStandardMaterial({ color: col('--strap'), roughness: 0.9, side: THREE.DoubleSide });
+  const strap = new THREE.Mesh(new THREE.CylinderGeometry(R + 0.006, R + 0.006, 0.034, 64, 1, true), strapMat);
+  strap.rotation.z = Math.PI / 2; strap.position.x = BX; groups.strap.add(strap);
+  tag(strap, { name: 'Elastic strap + Velcro', role: 'Holds all 16 pods against the skin with even pressure. Velcro lets every patient tighten it to their arm.', spec: [['Width', '3–4 cm'], ['Material', 'elastic textile'], ['Price', '≈ €5']] });
+
+  // ---- 16 FSR pods
+  const fsrMats = [], pods = [];
+  for (let i = 0; i < 16; i++) {
+    // 0-7 on the palm side (-y), 8-15 on the back (+y)
+    const a = -Math.PI / 2 + ((i % 8) - 3.5) * (Math.PI / 8.6) + (i >= 8 ? Math.PI : 0);
+    const pod = new THREE.Group();
+    const shell = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.009, 0.014), new THREE.MeshStandardMaterial({ color: col('--strap'), roughness: 0.6 }));
+    shell.position.y = 0.0045 + 0.006; pod.add(shell);
+    const m = new THREE.MeshStandardMaterial({ color: col('--fsr'), emissive: col('--fsr'), emissiveIntensity: 0.05, roughness: 0.4 });
+    const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.0062, 0.0062, 0.0025, 24), m); disc.position.y = 0.0045; pod.add(disc);
+    const win = new THREE.Mesh(new THREE.CylinderGeometry(0.0055, 0.0055, 0.0016, 24), m); win.position.y = 0.0156; pod.add(win);   // window on the outside: glows with the pressure
+    pod.position.set(BX, Math.cos(a) * R, Math.sin(a) * R); pod.lookAt(BX, 0, 0); pod.rotateX(-Math.PI / 2);
+    pod.userData.dir = new THREE.Vector3(0, Math.cos(a), Math.sin(a)); pod.userData.base = pod.position.clone();
+    groups.fsr.add(pod); pods.push(pod); fsrMats.push(m);
+    tag(disc, { name: `FSR ${i} · ${i < 8 ? 'palm side' : 'back side'}`, role: 'Force-sensitive resistor in a printed pod. When the muscle under it bulges, the pressure rises and its resistance drops: that is the FMG signal.', spec: [['Sensor', 'Interlink FSR 402, Ø 12.7 mm'], ['Circuit', '3V3 → FSR → 10 kΩ → GND'], ['Read', `MUX channel C${i}`], ['Rate', '100 Hz']] });
+    tag(shell, disc.userData.info); tag(win, disc.userData.info);
+  }
+
+  // ---- 2 EMG modules (proximal of the ring), with 3 electrodes each
+  const emgMats = [];
+  [['Flexor', -1], ['Extensor', 1]].forEach(([nm, s], k) => {
+    const g = new THREE.Group();
+    const mod = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.008, 0.022), new THREE.MeshStandardMaterial({ color: col('--emg'), roughness: 0.5 }));
+    g.add(mod);
+    const led = new THREE.MeshStandardMaterial({ color: col('--emg'), emissive: col('--emg'), emissiveIntensity: 0.1 });
+    const l = new THREE.Mesh(new THREE.SphereGeometry(0.0022, 12, 8), led); l.position.set(0.01, 0.005, 0.006); g.add(l); emgMats.push(led);
+    [-0.01, 0, 0.01].forEach((dx, j) => { const e = new THREE.Mesh(new THREE.CylinderGeometry(0.0035, 0.0035, 0.004, 16), new THREE.MeshStandardMaterial({ color: 0xb8c0c6, metalness: 0.8, roughness: 0.25 })); e.position.set(dx, -0.006, j === 1 ? -0.004 : 0.004); g.add(e); });
+    const r = 0.044; g.position.set(BX - 0.045, s * r, 0); if (s < 0) g.rotation.x = Math.PI;
+    g.userData.dir = new THREE.Vector3(0, s, 0); g.userData.base = g.position.clone();
+    groups.emg.add(g);
+    tag(mod, { name: `EMG ${k + 1} · ${nm}`, role: k === 0 ? 'Reads the electrical activity of the finger flexors on the palm side: high when you make a fist or pinch.' : 'Reads the finger extensors on the back of the forearm: high when you open the hand wide.', spec: [['Sensor', 'OYMotion SEN0240 (or MyoWare 2.0)'], ['Electrodes', '3 dry, one is reference'], ['Pin', k === 0 ? 'GPIO34' : 'GPIO35'], ['Rate', '1 kHz']] });
+  });
+
+  // ---- electronics box on the back (+y), outside the strap
+  const box = new THREE.Group(); box.position.set(BX + 0.002, R + 0.022, 0); box.userData.dir = new THREE.Vector3(0, 1, 0); box.userData.base = box.position.clone();
+  const boxShell = new THREE.Mesh(new THREE.BoxGeometry(0.058, 0.014, 0.034), new THREE.MeshStandardMaterial({ color: col('--elec'), roughness: 0.5, transparent: true, opacity: 0.55 }));
+  box.add(boxShell);
+  const esp = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.004, 0.026), new THREE.MeshStandardMaterial({ color: 0x1d2a33, roughness: 0.4 })); esp.position.y = -0.002; box.add(esp);
+  const chip = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.003, 0.016), new THREE.MeshStandardMaterial({ color: 0xc9ced2, metalness: 0.7, roughness: 0.3 })); chip.position.set(-0.008, 0.002, 0); box.add(chip);
+  const mux = new THREE.Mesh(new THREE.BoxGeometry(0.014, 0.003, 0.012), new THREE.MeshStandardMaterial({ color: 0x3b2a5a, roughness: 0.5 })); mux.position.set(0.014, 0.002, 0.004); box.add(mux);
+  // LiPo battery under the board, charger and the ESP32 antenna area at the end of the board
+  const bat = new THREE.Mesh(new THREE.BoxGeometry(0.046, 0.005, 0.03), new THREE.MeshStandardMaterial({ color: 0x9aa3ab, metalness: 0.4, roughness: 0.35 })); bat.position.y = -0.0085; box.add(bat);
+  const chg = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.002, 0.01), new THREE.MeshStandardMaterial({ color: 0x2a4fa0, roughness: 0.5 })); chg.position.set(-0.019, 0.0015, -0.008); box.add(chg);
+  const usb = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.0035, 0.009), new THREE.MeshStandardMaterial({ color: 0xb8c0c6, metalness: 0.8, roughness: 0.3 })); usb.position.set(-0.03, -0.001, 0); box.add(usb);
+  const ant = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.0012, 0.018), new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.7, roughness: 0.3 })); ant.position.set(0.021, 0.0012, 0); box.add(ant);
+  // radio waves above the antenna
+  const waveMat = new THREE.MeshBasicMaterial({ color: col('--elec'), transparent: true, opacity: 0.6, side: THREE.DoubleSide });
+  const waves = [0, 1, 2].map((k) => { const w = new THREE.Mesh(new THREE.TorusGeometry(0.008 + k * 0.007, 0.0007, 6, 32, Math.PI * 0.8), waveMat.clone()); w.rotation.set(0, Math.PI / 2, Math.PI * 0.1); w.position.set(0.021, 0.01, 0); box.add(w); return w; });
+  groups.elec.add(box);
+  tag(boxShell, { name: 'Electronics box', role: 'Printed box on the back of the band: wireless ESP32, the 16→1 multiplexer, the LiPo battery and its charger. Nothing is plugged in while you train.', spec: [['Board', 'ESP32-WROOM-32 (Wi-Fi + BLE)'], ['MUX', 'CD74HC4067, SIG → GPIO36'], ['Link', 'Bluetooth LE / Wi-Fi to the PC'], ['Power', 'LiPo 3.7 V, USB-C charging']] });
+  tag(esp, boxShell.userData.info); tag(chip, boxShell.userData.info);
+  const wl = { name: 'ESP32 · wireless microcontroller', role: 'The ESP32 has Wi-Fi and Bluetooth built in. It reads all sensors and sends the data to the PC without a cable (Bluetooth LE or Wi-Fi). USB-C is only for charging and flashing the firmware.', spec: [['Radio', 'Wi-Fi 2.4 GHz + Bluetooth LE'], ['Antenna', 'on the board (gold strip)'], ['Range', 'about 10 m indoors'], ['Pins', 'ADC1 only, so the radio can run']] };
+  tag(ant, wl); waves.forEach((w) => tag(w, wl));
+  tag(bat, { name: 'LiPo battery 3.7 V', role: 'Small flat battery under the board, so the band works without a cable at home.', spec: [['Size', '≈ 500 mAh, 40 × 30 × 5 mm'], ['Runtime', 'about 4–6 h (estimate)'], ['Price', '≈ €6–8']] });
+  tag(chg, { name: 'Charger TP4056 (USB-C)', role: 'Charges the LiPo from any USB-C cable and protects it from over-discharge.', spec: [['Module', 'TP4056 with protection'], ['Input', 'USB-C 5 V'], ['Price', '≈ €2']] });
+  tag(usb, { name: 'USB-C port', role: 'Only for charging and for flashing new firmware. During training the band is wireless.', spec: [['Use', 'charge + flash']] });
+  tag(mux, { name: 'CD74HC4067 multiplexer', role: 'Switches the 16 FSR voltages one by one to a single ADC pin of the ESP32.', spec: [['Select', 'S0–S3 → GPIO25, 26, 27, 14'], ['Output', 'SIG → GPIO36'], ['Price', '≈ €2–5']] });
+
+  // ---- wires: pods -> box (simple tubes, rebuilt when exploding)
+  const wireMat = new THREE.MeshStandardMaterial({ color: col('--ink2'), roughness: 0.8 });
+  function buildWires() {
+    while (groups.wire.children.length) { const c = groups.wire.children.pop(); c.geometry.dispose(); }
+    const to = box.position.clone().add(new THREE.Vector3(-0.024, -0.004, 0));
+    pods.forEach((p, i) => {
+      const from = p.position.clone();
+      const mid = from.clone().add(to).multiplyScalar(0.5).add(new THREE.Vector3(-0.012, 0, 0)); mid.setLength(Math.max(mid.length(), R + 0.03));
+      const curve = new THREE.QuadraticBezierCurve3(from, mid, to.clone().add(new THREE.Vector3(0, 0, (i - 7.5) * 0.0015)));
+      groups.wire.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 16, 0.0006, 5, false), wireMat));
+    });
+    groups.emg.children.forEach((g) => {
+      const from = g.position.clone(), curve = new THREE.QuadraticBezierCurve3(from, from.clone().add(new THREE.Vector3(0.01, 0, 0.05)).setLength(R + 0.05), to);
+      groups.wire.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 16, 0.0009, 5, false), wireMat));
+    });
+  }
+
+  // ---- explode
+  function explode(v) {
+    pods.forEach((p) => p.position.copy(p.userData.base).addScaledVector(p.userData.dir, v * 0.03));
+    groups.emg.children.forEach((g) => g.position.copy(g.userData.base).addScaledVector(g.userData.dir, v * 0.04).add(new THREE.Vector3(-v * 0.02, 0, 0)));
+    box.position.copy(box.userData.base).addScaledVector(box.userData.dir, v * 0.035);
+    strap.scale.set(1 + v * 0.25, 1, 1 + v * 0.25);
+    skin.opacity = 1 - v * 0.55;
+    buildWires();
+  }
+  document.getElementById('explode').addEventListener('input', (e) => explode(+e.target.value));
+  ['arm', 'strap', 'fsr', 'emg', 'elec', 'wire'].forEach((k) => document.getElementById('L_' + k).addEventListener('change', (e) => { groups[k].visible = e.target.checked; }));
+
+  // ---- gestures: the same patterns the Lab simulator uses (fist = palm side, open = back side, pinch = every third)
+  const base = Array.from({ length: 16 }, (_, i) => 0.18 + 0.12 * Math.abs(Math.sin(i * 1.7)));
+  const PAT = {
+    rest: { f: base, e: [0.03, 0.03] },
+    open: { f: base.map((b, i) => b + (i >= 8 ? 0.45 + 0.3 * Math.abs(Math.sin(i)) : 0)), e: [0.08, 0.55] },
+    close: { f: base.map((b, i) => b + (i < 8 ? 0.5 + 0.35 * Math.abs(Math.cos(i)) : 0)), e: [0.6, 0.12] },
+    pinch: { f: base.map((b, i) => b + (i % 3 === 0 ? 0.42 : 0)), e: [0.35, 0.3] },
+  };
+  let gest = 'rest'; const curF = base.slice(), curE = [0.03, 0.03];
+  const barsEl = document.getElementById('bars'); const bars = [];
+  for (let i = 0; i < 16; i++) { const b = document.createElement('i'); b.title = `FSR ${i}`; barsEl.appendChild(b); bars.push(b); }
+  document.querySelectorAll('#gest button').forEach((b) => b.addEventListener('click', () => {
+    gest = b.dataset.g; document.querySelectorAll('#gest button').forEach((x) => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+  }));
+
+  // ---- part sheet
+  const partEl = document.getElementById('part');
+  function showPart(info) {
+    partEl.innerHTML = `<div class="lab">Selected part</div><h3>${info.name}</h3><p>${info.role}</p><dl>${(info.spec || []).map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join('')}</dl>`;
+  }
+  showPart({ name: 'Click a part', role: 'Click a sensor, the strap or the electronics box in the 3D model to see what it does and how it is wired.', spec: [['FSR (orange)', '16, inside the strap'], ['EMG (blue)', '2, flexor + extensor'], ['Box (green)', 'wireless ESP32 + battery']] });
+  const ray = new THREE.Raycaster(), mouse = new THREE.Vector2(); let down = null;
+  canvas.addEventListener('pointerdown', (e) => { down = [e.clientX, e.clientY]; });
+  canvas.addEventListener('pointerup', (e) => {
+    if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) return;
+    const r = canvas.getBoundingClientRect(); mouse.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+    ray.setFromCamera(mouse, camera);
+    const hit = ray.intersectObjects(pick.filter((m) => { let o = m; while (o) { if (!o.visible) return false; o = o.parent; } return true; }), false)[0];
+    if (hit) showPart(hit.object.userData.info);
+  });
+
+  // ---- render loop
+  function resize() { const w = canvas.clientWidth, h = canvas.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+  window.addEventListener('resize', resize);
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let t = 0;
+  function frame() {
+    t += 0.016; const P = PAT[gest];
+    for (let i = 0; i < 16; i++) {
+      const target = P.f[i] + (reduce ? 0 : 0.03 * Math.sin(t * 3 + i));
+      curF[i] += (target - curF[i]) * 0.12;
+      const a = Math.min(1, curF[i]);
+      bars[i].style.height = `${Math.round(a * 100)}%`;
+      fsrMats[i].emissiveIntensity = Math.max(0.05, (a - 0.2) * 1.4);
+    }
+    for (let k = 0; k < 2; k++) {
+      const target = P.e[k] * (reduce ? 1 : 0.85 + 0.3 * Math.abs(Math.sin(t * 9 + k * 2)));
+      curE[k] += (target - curE[k]) * 0.15;
+      document.getElementById('e' + k).style.width = `${Math.min(100, curE[k] / 0.8 * 100)}%`;
+      document.getElementById('e' + k + 'n').textContent = curE[k].toFixed(2);
+      emgMats[k].emissiveIntensity = curE[k] * 2;
+    }
+    if (!reduce) waves.forEach((w, k) => { w.material.opacity = 0.15 + 0.55 * (0.5 + 0.5 * Math.sin(t * 4 - k * 1.2)); });
+    controls.update(); renderer.render(scene, camera); requestAnimationFrame(frame);
+  }
+  buildWires(); resize(); frame();
+  // keep scene colours in step with the theme
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  const recolor = () => { skin.color = col('--skin'); strapMat.color = col('--strap'); fsrMats.forEach((m) => { m.color = col('--fsr'); m.emissive = col('--fsr'); }); wireMat.color = col('--ink2'); };
+  mq.addEventListener && mq.addEventListener('change', recolor);
+  new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+})();
+</script>

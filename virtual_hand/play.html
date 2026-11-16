@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smit's Kitchen</title>
+<style>
+  :root {
+    --ink: #14181f; --ink2: #5a6270; --line: rgba(20,24,31,.12); --glass: rgba(255,255,255,.86);
+    --accent: #8a4b12; --rhythm: #2a78d6; --kitchen: #eb6834; --pour: #1baf7a; --bad: #e34948; --gold: #eda100;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0e1320; color: var(--ink);
+    font-family: Inter, "Segoe UI", system-ui, sans-serif; }
+  canvas#stage { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; display: block; }
+  .panel { background: var(--glass); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 10px 30px rgba(10,14,22,.18); }
+  #hud { position: fixed; left: 16px; right: 16px; top: 14px; display: none; align-items: center; gap: 14px; padding: 10px 14px; }
+  #hud .lvl { font-weight: 800; font-size: 16px; }
+  #hud .chip { font-size: 12px; color: var(--ink2); background: rgba(20,24,31,.05); border-radius: 999px; padding: 4px 10px; white-space: nowrap; }
+  #hud .num { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--ink); }
+  #hud .sp { flex: 1; }
+  button { font: inherit; font-size: 13px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line);
+    background: #fff; color: var(--ink); cursor: pointer; }
+  button:hover { border-color: rgba(20,24,31,.3); }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  button.on { background: #14181f; color: #fff; }
+  #toast { position: fixed; top: 84px; left: 50%; transform: translateX(-50%); padding: 12px 26px; text-align: center;
+    display: none; min-width: 300px; }
+  #toast .t { font-size: 26px; font-weight: 800; letter-spacing: .01em; }
+  #toast .s { font-size: 13px; color: var(--ink2); margin-top: 2px; }
+  #toast.ok .t { color: var(--pour); } #toast.bad .t { color: var(--bad); }
+  #hint { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); padding: 9px 18px; font-size: 14px; display: none; white-space: nowrap; }
+  #orderCard { position: fixed; left: 16px; top: 84px; width: 230px; padding: 14px; display: none; }
+  #orderCard h3 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .07em; color: var(--ink2); }
+  #orderCard .row { display: flex; align-items: center; gap: 10px; font-size: 15px; padding: 5px 0; border-top: 1px solid var(--line); }
+  #orderCard .row:first-of-type { border-top: 0; }
+  #orderCard .ico { font-size: 24px; width: 30px; text-align: center; }
+  #orderCard .need { margin-left: auto; font-size: 11px; color: var(--ink2); }
+  #orderCard .cnt { font-weight: 800; font-variant-numeric: tabular-nums; min-width: 34px; text-align: right; }
+  #orderCard .row.done { opacity: .45; text-decoration: line-through; }
+  #gauge { position: fixed; right: 24px; top: 50%; transform: translateY(-50%); width: 74px; height: 360px; padding: 12px; display: none; }
+  #gauge .bar { position: relative; height: 100%; width: 26px; margin: 0 auto; border-radius: 13px; background: #e9ecf0; overflow: hidden; }
+  #gauge .zone { position: absolute; left: 0; right: 0; background: rgba(27,175,122,.35); border-top: 2px solid var(--pour); border-bottom: 2px solid var(--pour); }
+  #gauge .danger { position: absolute; left: 0; right: 0; top: 0; height: 5%; background: rgba(227,73,72,.25); }
+  #gauge .mark { position: absolute; left: -6px; right: -6px; height: 6px; border-radius: 3px; background: var(--ink); transition: bottom .05s linear; }
+  #gauge .lab { position: absolute; bottom: -2px; left: 0; right: 0; text-align: center; font-size: 10px; color: var(--ink2); }
+  .overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; padding: 16px;
+    background: radial-gradient(1200px 700px at 50% 30%, rgba(14,19,32,.35), rgba(14,19,32,.75)); }
+  .overlay.show { display: flex; }
+  #menu .box { width: min(980px, 100%); padding: 28px; }
+  .brand { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .brand h1 { margin: 0; font-size: 34px; letter-spacing: -.01em; }
+  .brand span { color: var(--ink2); font-size: 14px; }
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 20px; }
+  .card { border-radius: 16px; padding: 18px; color: #fff; cursor: pointer; position: relative; overflow: hidden; min-height: 200px;
+    display: flex; flex-direction: column; transition: transform .12s ease; border: 0; text-align: left; }
+  .card:hover { transform: translateY(-3px); }
+  .card .n { font-size: 12px; font-weight: 700; opacity: .85; letter-spacing: .08em; }
+  .card .ti { font-size: 22px; font-weight: 800; margin: 6px 0 6px; }
+  .card .de { font-size: 13px; opacity: .92; line-height: 1.45; }
+  .card .em { position: absolute; right: 12px; top: 8px; font-size: 54px; opacity: .9; }
+  .card .best { margin-top: auto; font-size: 12px; opacity: .95; padding-top: 10px; }
+  .c1 { background: linear-gradient(140deg, #2a78d6, #1d4f99); } .c2 { background: linear-gradient(140deg, #eb6834, #b4431b); } .c3 { background: linear-gradient(140deg, #1baf7a, #117553); }
+  .setup { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 18px; font-size: 13px; color: var(--ink2); }
+  .status { display: inline-flex; gap: 6px; align-items: center; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--bad); display: inline-block; }
+  .dot.ok { background: var(--pour); }
+  #end .box, #dash .box { width: min(720px, 100%); padding: 26px; max-height: 92vh; overflow-y: auto; }
+  #end h2 { margin: 0; font-size: 28px; }
+  #end .stars { font-size: 46px; color: var(--gold); letter-spacing: 6px; margin: 8px 0; }
+  #end .score { font-size: 18px; font-weight: 700; }
+  #end ul { color: var(--ink2); font-size: 14px; line-height: 1.7; padding-left: 18px; }
+  #dash h2 { margin: 0 0 4px; }
+  .charts { display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 14px; }
+  .chart { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: #fcfcfb; }
+  .chart h4 { margin: 0 0 4px; font-size: 13px; }
+  .chart svg { width: 100%; height: 130px; display: block; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 12px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  th { color: var(--ink2); font-weight: 600; }
+  #camBox { position: fixed; right: 16px; bottom: 16px; width: 200px; height: 150px; border-radius: 12px; overflow: hidden; display: none; background: #000; border: 2px solid rgba(255,255,255,.7); }
+  #camBox video, #camBox canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #camBox video { transform: scaleX(-1); object-fit: cover; opacity: .85; }
+  #camZone { position: absolute; left: 25%; top: 31%; width: 50%; height: 50%; border: 2px dashed rgba(27,175,122,.9); border-radius: 8px; pointer-events: none; }
+  #camTag { position: absolute; left: 6px; top: 4px; font-size: 11px; color: #fff; background: rgba(0,0,0,.5); padding: 1px 6px; border-radius: 6px; }
+  #calib .box { width: min(760px, 100%); padding: 26px; text-align: center; }
+  #calib h2 { margin: 0 0 4px; font-size: 26px; }
+  #calib .sub { color: var(--ink2); font-size: 14px; }
+  #cBig { font-size: 120px; line-height: 1.1; margin: 14px 0 0; }
+  #cName { font-size: 34px; font-weight: 800; letter-spacing: .02em; }
+  #cBar { height: 10px; border-radius: 5px; background: #e9ecf0; overflow: hidden; margin: 16px auto 6px; width: 70%; }
+  #cBar i { display: block; height: 100%; width: 0; background: var(--rhythm); }
+  #cInfo { font-size: 13px; color: var(--ink2); min-height: 18px; }
+  #cRes table { margin-top: 14px; } #cRes td.ok { color: #117553; font-weight: 700; } #cRes td.low { color: var(--bad); font-weight: 700; }
+  #calib { z-index: 10; } #camBox.big { width: 360px; height: 270px; right: 24px; bottom: 24px; z-index: 20; }
+  .aiTag { font-weight: 700; color: var(--ink); }
+  @media (max-width: 800px) { .cards { grid-template-columns: 1fr; } #hud { flex-wrap: wrap; } #orderCard { top: 140px; } }
+</style>
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.min.js", "three/addons/": "./vendor/jsm/" } }
+</script>
+</head>
+<body>
+<canvas id="stage"></canvas>
+
+<div id="hud" class="panel">
+  <span class="lvl" id="hLevel">-</span>
+  <span class="chip">score <span class="num" id="hScore">0</span></span>
+  <span class="chip">time <span class="num" id="hTime">0.0</span> s</span>
+  <span class="chip" id="hInput">input</span>
+  <span class="sp"></span>
+  <button id="bAssist" title="Move the hand automatically (for band-only use without position sensing)">Auto-reach</button>
+  <button id="bMirror2" title="Every virtual finger follows your real finger (camera)">Fingers</button>
+  <button id="bCam2">Camera</button>
+  <button id="bMute">Sound on</button>
+  <button id="bQuit">Menu</button>
+</div>
+<div id="toast" class="panel"><div class="t" id="tT"></div><div class="s" id="tS"></div></div>
+<div id="hint" class="panel"></div>
+<div id="orderCard" class="panel"></div>
+<div id="gauge" class="panel"><div class="bar"><div class="danger"></div><div class="zone" id="gZone"></div><div class="mark" id="gMark"></div></div></div>
+<div id="camBox"><video id="video" playsinline muted></video><canvas id="camCanvas" width="640" height="480"></canvas><i id="camZone" title="Keep your hand inside this box: it already reaches the whole table"></i><span id="camTag">camera</span></div>
+
+<div id="menu" class="overlay show">
+  <div class="box panel">
+    <div class="brand"><h1>Smit's Kitchen</h1><span>Prosthesis training games · EMG + FMG band or webcam</span></div>
+    <div class="cards">
+      <button class="card c1" data-level="rhythm"><span class="em">🎵</span><span class="n">LEVEL 1 · WARM-UP</span><span class="ti">Gesture Rhythm</span>
+        <span class="de">Cards fly in on the beat. Make the fist, open or pinch as each card reaches the ring. Measures accuracy and reaction time.</span><span class="best" id="best_rhythm">no score yet</span></button>
+      <button class="card c2" data-level="kitchen"><span class="em">🍓</span><span class="n">LEVEL 2 · DAILY LIFE</span><span class="ti">Fruit Kitchen</span>
+        <span class="de">Make smoothies. Fist for apples, oranges and bananas, pinch for berries and grapes, open over the blender.</span><span class="best" id="best_kitchen">no score yet</span></button>
+      <button class="card c3" data-level="pour"><span class="em">🥛</span><span class="n">LEVEL 3 · CONTROL</span><span class="ti">Steady Pour</span>
+        <span class="de">Squeeze just enough to pour water up to the line. Too hard splashes, too soft stops. Trains grip strength.</span><span class="best" id="best_pour">no score yet</span></button>
+    </div>
+    <div class="setup">
+      <button class="primary" id="bCam">Start camera</button>
+      <button class="primary" id="bCalib" title="20 seconds: show open, fist, pinch and rest. Trains an AI on YOUR hand.">Calibrate my hand (20 s)</button>
+      <button id="bMirror" title="Every virtual finger follows your real finger (camera)">Fingers: mirror</button>
+      <button id="bHand" title="Switch between the bionic hand and your 3D-printed hand">Hand: bionic</button>
+      <button id="bDash">Progress dashboard</button>
+      <a href="./index.html"><button>Lab: calibrate AI</button></a>
+      <span class="status"><i class="dot" id="dConn"></i><span id="sConn">server not connected</span></span>
+      <span class="status" id="sInput">input: keyboard 1-4 + mouse</span>
+      <span class="status">camera AI: <span class="aiTag" id="sAI">not calibrated</span></span>
+    </div>
+  </div>
+</div>
+
+<div id="end" class="overlay">
+  <div class="box panel">
+    <h2 id="eTitle">Level complete</h2>
+    <div class="stars" id="eStars">★★★</div>
+    <div class="score" id="eScore"></div>
+    <ul id="eLines"></ul>
+    <div class="setup"><button class="primary" id="eAgain">Play again</button><button id="eMenu">Menu</button><button id="eDash">Dashboard</button></div>
+  </div>
+</div>
+
+<div id="calib" class="overlay">
+  <div class="box panel">
+    <h2 id="cTitle">Calibrate my hand</h2>
+    <div class="sub" id="cSub">Hold your hand in front of the camera and copy each gesture until the bar is full. Two rounds, 20 seconds.</div>
+    <div id="cLive">
+      <div id="cBig">🖐️</div><div id="cName">OPEN</div>
+      <div id="cBar"><i id="cFill"></i></div><div id="cInfo"></div>
+    </div>
+    <div id="cRes"></div>
+    <div class="setup" style="justify-content:center"><button class="primary" id="cGo">Start</button><button id="cClose">Close</button></div>
+  </div>
+</div>
+
+<div id="dash" class="overlay">
+  <div class="box panel">
+    <h2>Progress</h2>
+    <div style="color:var(--ink2);font-size:13px" id="dashSrc">-</div>
+    <div class="charts" id="charts"></div>
+    <table><thead><tr><th>Date</th><th>Level</th><th>Score</th><th>Stars</th><th>Key result</th><th>Input</th></tr></thead><tbody id="dashRows"></tbody></table>
+    <div class="setup"><button id="dClose">Close</button></div>
+  </div>
+</div>
+
+<script type="module" src="./game/play.js"></script>
+</body>
+</html>

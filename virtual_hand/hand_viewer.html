@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Hand viewer</title>
+<style>html,body{margin:0;height:100%;background:#e9edf1;font-family:system-ui,sans-serif}#c{width:100vw;height:100vh;display:block}
+#ui{position:fixed;left:12px;top:12px;display:flex;gap:6px;flex-wrap:wrap}button{padding:6px 10px;border-radius:8px;border:1px solid #bbb;background:#fff;cursor:pointer}</style>
+<script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js", "three/addons/": "./vendor/jsm/" } }</script></head>
+<body><canvas id="c"></canvas><div id="ui"></div>
+<script type="module">
+// Dev tool: shows the game hand (Smit's printed hand when models/arm exists) in every pose.
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { createHand, loadArmModel, POSES } from './game/handmodel.js';
+const r = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true, preserveDrawingBuffer: true });
+r.setPixelRatio(Math.min(devicePixelRatio, 2)); r.toneMapping = THREE.ACESFilmicToneMapping; r.shadowMap.enabled = true;
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0xe9edf1);
+scene.environment = new THREE.PMREMGenerator(r).fromScene(new RoomEnvironment(), 0.04).texture;
+const sun = new THREE.DirectionalLight(0xffffff, 1.6); sun.position.set(0.3, 0.6, 0.4); scene.add(sun);
+const cam = new THREE.PerspectiveCamera(35, 1, 0.01, 10); cam.position.set(0.12, 0.22, 0.32);
+const ctl = new OrbitControls(cam, r.domElement); ctl.target.set(0.05, 0, 0);
+const params = new URLSearchParams(location.search);
+await loadArmModel();
+const hand = createHand({ forearm: params.get('forearm') !== '0' }); scene.add(hand.root);
+scene.add(new THREE.AxesHelper(0.05));
+window.__hand = hand; window.__cam = cam; window.__ctl = ctl;
+const ui = document.getElementById('ui');
+Object.keys(POSES).forEach((p) => { const b = document.createElement('button'); b.textContent = p; b.onclick = () => hand.pose(p); ui.appendChild(b); });
+function size() { r.setSize(innerWidth, innerHeight, false); cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); }
+addEventListener('resize', size); size();
+let last = performance.now();
+r.setAnimationLoop((t) => { const dt = Math.min(0.1, (t - last) / 1000); last = t; hand.update(dt); ctl.update(); r.render(scene, cam); });
+hand.pose(params.get('pose') || 'open');
+</script></body></html>
