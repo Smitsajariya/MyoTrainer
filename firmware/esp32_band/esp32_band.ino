@@ -1,5 +1,5 @@
 /*
-  Proposal B sensor band firmware (ESP32 DevKit).
+  MyoTrainer sensor band firmware (ESP32 DevKit).
 
   Inputs
     EMG 1 (flexor side)   -> GPIO34  (DFRobot/OYMotion Gravity analog EMG, 0-3 V, 1.5 V reference)

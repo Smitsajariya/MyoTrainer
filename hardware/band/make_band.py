@@ -1,5 +1,5 @@
 """
-Proposal B sensor band: printable parts (STL), all sizes in mm.
+MyoTrainer sensor band: printable parts (STL), all sizes in mm.
 
 The band is one 25 mm Velcro/elastic strap with 8 sensor pods and 1 electronics box threaded on it:
     pod x8   (TPU 95A)  each holds 2 x FSR 402 (one row near the elbow, one near the wrist) = 16 FSR

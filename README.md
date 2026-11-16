@@ -1,4 +1,6 @@
-# Virtual Prosthesis Trainer
+# MyoTrainer
+
+**Virtual prosthesis training with an EMG + FMG sensor band.** (Not related to the Myo armband by Thalmic Labs.)
 
 Train myoelectric hand control before the real prosthesis is ready: a virtual prosthetic hand on a forearm,
 driven by camera hand tracking today and by a self-designed EMG + FMG sensor band next, with three therapy games.
@@ -7,7 +9,7 @@ driven by camera hand tracking today and by a self-designed EMG + FMG sensor ban
 
 ## Demo
 
-**▶ Play it in your browser:** https://smitsajariya.github.io/virtual-prosthesis-trainer/  
+**▶ Play it in your browser:** https://smitsajariya.github.io/MyoTrainer/  
 Needs a laptop with a webcam and Chrome or Edge. Click **Start camera**, allow the camera, show your right hand, then pick a game.
 
 
@@ -21,16 +23,16 @@ Each game trains grasp, carry and release, with selectable rounds and "pick it u
 
 ## 3D sensor band
 
-[![Sensor band](docs/demo/band3d.jpg)](https://smitsajariya.github.io/virtual-prosthesis-trainer/hardware/band/band_print_parts.html)
+[![Sensor band](docs/demo/band3d.jpg)](https://smitsajariya.github.io/MyoTrainer/hardware/band/band_print_parts.html)
 
-**▶ Turn the band in 3D:** https://smitsajariya.github.io/virtual-prosthesis-trainer/hardware/band/band_print_parts.html  
-**Band design (sensors, wiring, ESP32):** https://smitsajariya.github.io/virtual-prosthesis-trainer/docs/band_design/band_design.html
+**▶ Turn the band in 3D:** https://smitsajariya.github.io/MyoTrainer/hardware/band/band_print_parts.html  
+**Band design (sensors, wiring, ESP32):** https://smitsajariya.github.io/MyoTrainer/docs/band_design/band_design.html
 
 A 3D-printed band for the forearm: 8 pods with 16 force sensors (FSR 402, two per pod), 2 EMG sensors and an ESP32 box.
 Printable files are in [`hardware/band/`](hardware/band/) (`band_pod_x8.stl`, `band_button_x16.stl`, `band_box.stl`, `band_box_lid.stl`);
 `make_band.py` generates them, so sizes can be changed in one place.
 
-## Proposal B: EMG + FMG sensor band for virtual prosthesis training
+## How it works
 
 M.Sc. thesis project, Smit Gangdasbhai Sakariya, AIMS, Coburg University.
 

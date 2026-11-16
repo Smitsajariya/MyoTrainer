@@ -1,1 +1,1 @@
-"""Proposal B: EMG/FMG sensor band for virtual prosthesis training (shared code)."""
+"""MyoTrainer: EMG/FMG sensor band for virtual prosthesis training (shared code)."""
