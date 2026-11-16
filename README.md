@@ -19,6 +19,17 @@ Needs a laptop with a webcam and Chrome or Edge. Click **Start camera**, allow t
 The hand is tracked by the laptop camera; the blue band on the forearm marks where the sensor band will sit.
 Each game trains grasp, carry and release, with selectable rounds and "pick it up yourself" reach rounds.
 
+## 3D sensor band
+
+[![Sensor band](docs/demo/band3d.jpg)](https://smitsajariya.github.io/virtual-prosthesis-trainer/hardware/band/band_print_parts.html)
+
+**▶ Turn the band in 3D:** https://smitsajariya.github.io/virtual-prosthesis-trainer/hardware/band/band_print_parts.html  
+**Band design (sensors, wiring, ESP32):** https://smitsajariya.github.io/virtual-prosthesis-trainer/docs/band_design/band_design.html
+
+A 3D-printed band for the forearm: 8 pods with 16 force sensors (FSR 402, two per pod), 2 EMG sensors and an ESP32 box.
+Printable files are in [`hardware/band/`](hardware/band/) (`band_pod_x8.stl`, `band_button_x16.stl`, `band_box.stl`, `band_box_lid.stl`);
+`make_band.py` generates them, so sizes can be changed in one place.
+
 ## Proposal B: EMG + FMG sensor band for virtual prosthesis training
 
 M.Sc. thesis project, Smit Gangdasbhai Sakariya, AIMS, Coburg University.
