@@ -34,92 +34,43 @@ Printable files are in [`hardware/band/`](hardware/band/) (`band_pod_x8.stl`, `b
 
 ## How it works
 
-M.Sc. thesis project, Smit Gangdasbhai Sakariya, AIMS, Coburg University.
+M.Sc. thesis project by Smit Sakariya, Analytical Instruments, Measurement and Sensor Technology, Coburg University.
 
 A low-cost band (2 dry EMG sensors + 16 force-sensitive resistors) reads muscle activity on the forearm.
-An LDA classifier decodes four movements (rest, open, close, pinch) in real time and drives a
-virtual prosthetic hand mounted on a 3D-scanned residual limb, shown in the browser.
+An LDA classifier decodes four movements (rest, open, close, pinch) in real time and drives a virtual
+prosthetic hand on a forearm in the browser. Until the band is built, the laptop camera
+(MediaPipe hand tracking) gives the same four movements, so the games can already be played and tested.
 
 ```
-proposal-b/
-  pb/                   shared signal processing and classifiers (used offline AND in real time)
-  analysis/             Part A: public dataset (MyoKi) experiments  |  Part B: own recordings
-  realtime/             real-time server (sensor band / simulator / replay -> classifier -> browser)
-  virtual_hand/         browser app (Three.js), works offline; open via the server
-  firmware/esp32_band/  ESP32 firmware for the band
-  tests/                end-to-end test and synthetic data generators
-  docs/                 protocol, shopping list, band design, thesis outline
+pb/                   shared signal processing and classifiers (offline and real time)
+analysis/             Part A: public dataset (MyoKi) experiments | Part B: own recordings
+realtime/             real-time server: band / simulator / camera / replay -> classifier -> browser
+virtual_hand/         browser app (Three.js): virtual hand, calibration and the three games
+firmware/esp32_band/  ESP32 firmware for the band
+hardware/band/        printable band parts (STL) and the script that makes them
+tests/                end-to-end test and synthetic data generators
+docs/                 protocol, shopping list, band design, thesis outline
 ```
 
-## 1. Install (Windows, once)
+## Run it on your computer
 
-1. Install Python 3.11 or newer from python.org (tick "Add python.exe to PATH").
-2. Open a terminal in this folder and run:
-   ```
-   python -m pip install -r requirements.txt
-   ```
+**Install (once):** Python 3.11+, then `python -m pip install -r requirements.txt`.
 
-## 2. Camera mode and game (no band needed)
+**Camera mode (no band needed):** run `start_demo.bat` (or `python realtime\server.py --source camera`) and open http://localhost:8000.
+- **Start camera** and show your hand: the virtual hand copies every finger, the hand's turn and tilt, and its position.
+- **Calibrate movement** maps your real reach to the virtual table; **Calibrate** learns your own open / fist / pinch / rest.
+- Pick a game and the rounds you want to play. Results (success, grab time, release time, drops) are saved to `recordings\`.
+- **Record my movement** / **Replay** saves and plays back the hand motion, for therapist review.
 
-Double-click `start_demo.bat` (or `python realtime\server.py --source camera`), then in http://localhost:8000:
-1. **Start camera** and allow webcam access. Show your hand; the green skeleton and finger bars follow it.
-   (The hand model is downloaded from Google the first time, so internet is needed once.)
-2. **Calibrate** (3 repetitions, hold 3 s): copy each gesture shown on screen in front of the camera.
-3. **Start game**: apples need a FIST, grapes need a PINCH; hold, then OPEN to drop into the basket.
-   Results: `recordings\game_<time>.csv` (reaction time, success, wrong grasp, drops).
-- *Mirror my fingers directly*: the virtual hand copies every finger without the AI (demo).
-- *Use camera as teacher*: when the band is connected (`--source serial`), the camera gives the labels
-  for training instead of the on-screen prompts (mirror training: free hand in front of the camera).
+**Simulated band:** `python realtime\server.py --source sim`, open http://localhost:8000, set Repetitions = 3 and press
+**Calibrate**. A model is trained (`models\lda_....joblib`); keys **1-4** (rest, open, close, pinch) then drive the hand through the decoder.
 
-## 2. Copy my whole hand (Lab page, http://localhost:8000)
+**Real band:** wiring is at the top of `firmware\esp32_band\esp32_band.ino`. Flash it with the Arduino IDE
+(board "ESP32 Dev Module"), then run `python realtime\server.py --source serial --port COM5`.
 
-Start camera -> the virtual arm copies your hand like a mirror: every finger joint (3D landmarks), the hand's
-orientation (turn, tilt) and its position (left-right, up-down, near-far from hand size).
-**Record my movement** saves the camera movement (21 3D points per frame) to `recordings\motion_<time>.json`
-and **Replay** plays it back on the virtual arm. Uncheck "Copy my whole hand" to see only the decoded gesture
-(what the band AI will do).
+## Thesis experiments
 
-## 2a. Smit's Kitchen: the training game (http://localhost:8000/play.html)
-
-`start_demo.bat` opens it directly. Three levels plus a progress dashboard:
-| Level | What you do | What it measures |
-|---|---|---|
-| 1 Gesture Rhythm | make fist / open / pinch as each card hits the ring, speed adapts | accuracy, reaction time per gesture, confusions |
-| 2 Fruit Kitchen | fist for apple/orange/banana, pinch for berries/grapes, open over the blender | task time, wrong grasps, drops |
-| 3 Steady Pour | squeeze just enough to pour water to the line | grip-force control error, splashes |
-
-Input order: AI model on the server (band) -> camera -> keyboard (1 rest, 2 open, 3 fist, 4 pinch, Space = squeeze) and mouse.
-**Auto-reach** moves the hand by itself, so a band-only user (no position sensor) can play with gestures only.
-Every session is saved to `recordings\game_history.json` and `recordings\game_events.jsonl` (thesis data).
-
-**Calibrate my hand (20 s):** copy OPEN, FIST, PINCH, REST twice. A personal camera AI is trained on your hand and its
-honest accuracy (train on round 1, test on round 2) is shown per gesture. It is saved in the browser and the report goes to
-`recordings\camera_calibration.jsonl`. With the band, these better camera labels are what the band AI learns from.
-**Fingers: mirror:** every virtual finger follows your own finger (camera). Off = the hand only shows the decoded gesture
-(what the band can do).
-
-**Your printed hand:** the virtual hand is built from your own STL files (`Hand4RIGHT`, `Fingerdesign_8-7_*`, `ArmPiece_1`)
-by `python tools\build_arm_model.py "<folder with the STLs>"` -> `virtual_hand\models\arm\`. `virtual_hand\hand_viewer.html`
-shows it in every pose. Delete `models\arm` to go back to the built-in hand.
-
-**Meshy models:** download fruit GLBs from meshy.ai (CC0, ~10k faces is best). At start the server copies
-`Downloads\*apple*.glb`, `*orange*`, `*banana*`, `*strawberr*`, `*grape*`, `*cherr*`, `*bowl*` into `virtual_hand\models\`
-and the game uses them instead of the built-in shapes.
-
-## 2b. Try it with the simulated band
-
-```
-python realtime\server.py --source sim
-```
-Open http://localhost:8000 in Chrome.
-1. Set Repetitions = 3, press **Calibrate**, and follow the prompts (in simulator mode the
-   gestures are performed automatically).
-2. After calibration a model is trained (`models\lda_....joblib`).
-3. Press keys **1-4** (rest, open, close, pinch): the simulated muscles change and the hand follows the decoder.
-
-Without the server, the page still opens from `virtual_hand\index.html` through any local web server as a demo.
-
-## 3. Part A: public data (no hardware)
+### Part A: public dataset (no hardware)
 
 Download MyoKi participants **P26-P35** (the ones with FMG) from
 https://doi.org/10.6084/m9.figshare.28696778 (each file is about 4 GB; start with 3 files).
@@ -146,23 +97,14 @@ python analysis\run_experiments.py --data-dir synthetic_data --subjects P26-P29 
 > Check assumption: the loader assumes the 24 FMG columns are grouped 4 per bracelet module in
 > module order (`analysis\myoki_loader.py`, `fmg_module_cols`). Verify against Fig. 4 of the MyoKi paper.
 
-## 4. Hardware
+### Part B: own sessions (single subject)
 
-Wiring is at the top of `firmware\esp32_band\esp32_band.ino`. Flash it with the Arduino IDE
-(board: "ESP32 Dev Module"), then:
-```
-python realtime\server.py --source serial --port COM5
-```
-
-## 5. Part B: your own sessions (single subject)
-
-Follow `docs\protocol_self_experiment.md`. In the web page use **Record** with a tag such as
-`day1`, `day3_shift1cm`. Then:
+Follow `docs\protocol_self_experiment.md`. In the web page use **Record** with a tag such as `day1` or `day3_shift1cm`, then:
 ```
 python analysis\own_experiments.py --rec recordings --out results_partB
 ```
 
-## 6. Test everything
+### Tests
 
 ```
 python tests\make_sim_sessions.py sim_recordings
@@ -172,5 +114,4 @@ python tests\e2e_sim.py            (needs: pip install playwright && playwright 
 
 ## Data and licences
 - MyoKi: Andreas et al., *Scientific Data* 12:1507 (2025), CC BY 4.0.
-- Residual-limb model derived from "Arm" by Artec 3D (artec3d.com), CC BY 3.0.
 - Three.js (MIT licence) is included in `virtual_hand/vendor`.
