@@ -7,6 +7,10 @@ driven by camera hand tracking today and by a self-designed EMG + FMG sensor ban
 
 ## Demo
 
+**▶ Play it in your browser:** https://smitsajariya.github.io/virtual-prosthesis-trainer/  
+Needs a laptop with a webcam and Chrome or Edge. Click **Start camera**, allow the camera, show your right hand, then pick a game.
+
+
 | Game 1 · Build a tower | Game 2 · Fruit basket | Game 3 · Match it |
 |---|---|---|
 | ![Build a tower](docs/demo/tower.gif) | ![Fruit basket](docs/demo/fruit.gif) | ![Match it](docs/demo/match.gif) |
