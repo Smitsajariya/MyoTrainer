@@ -5,7 +5,15 @@ driven by camera hand tracking today and by a self-designed EMG + FMG sensor ban
 
 **Gameplay videos and 3D band:** https://smit-sakariya-thesis.pages.dev
 
-![Virtual hand](docs/screenshot_virtual_hand.png)
+## Demo
+
+| Game 1 · Build a tower | Game 2 · Fruit basket | Game 3 · Match it |
+|---|---|---|
+| ![Build a tower](docs/demo/tower.gif) | ![Fruit basket](docs/demo/fruit.gif) | ![Match it](docs/demo/match.gif) |
+| [Full video (1:43)](docs/demo/game1_tower.mp4) | [Full video (1:31)](docs/demo/game2_fruit.mp4) | [Full video (2:31)](docs/demo/game3_match.mp4) |
+
+The hand is tracked by the laptop camera; the blue band on the forearm marks where the sensor band will sit.
+Each game trains grasp, carry and release, with selectable rounds and "pick it up yourself" reach rounds.
 
 ## Proposal B: EMG + FMG sensor band for virtual prosthesis training
 
