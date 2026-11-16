@@ -5,8 +5,6 @@
 Train myoelectric hand control before the real prosthesis is ready: a virtual prosthetic hand on a forearm,
 driven by camera hand tracking today and by a self-designed EMG + FMG sensor band next, with three therapy games.
 
-**Gameplay videos and 3D band:** https://smit-sakariya-thesis.pages.dev
-
 ## Demo
 
 **▶ Play it in your browser:** https://smitsajariya.github.io/MyoTrainer/  
